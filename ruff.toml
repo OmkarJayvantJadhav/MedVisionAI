@@ -1,0 +1,25 @@
+# Shared lint and format settings for every Python package in the repository.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+  "E", "W",  # pycodestyle
+  "F",       # pyflakes
+  "I",       # isort
+  "B",       # bugbear
+  "UP",      # pyupgrade
+  "N",       # pep8-naming
+  "SIM",     # simplify
+  "RUF",     # ruff-specific
+  "PTH",     # prefer pathlib
+  "T20",     # no print (CLIs opt out per file)
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["T20"]
+"**/scripts/**" = ["T20"]
+"**/cli.py" = ["T20"]
+
+[format]
+quote-style = "double"
