@@ -84,7 +84,8 @@ the bulk of `outputs/`, the stray `git status` file, the empty
 - Malignant / pre-malignant (safety-critical) classes: **Melanoma, BCC, SCC,
   Actinic Keratosis**.
 
-**Baseline test results** (2,280 test images, class imbalance ≈ 25:1)
+**Prototype baseline test results** (prototype dataset with Acne, undocumented
+source; kept for reference only — see D21; 2,280 test images, imbalance ≈ 25:1)
 
 | Metric | Value |
 |---|---|
@@ -320,8 +321,11 @@ with green CI and an updated README section.
 - [x] Data leakage check (`medvision-ml check-leakage`: MD5 + dHash
       duplicates across splits) with a JSON report, and a duplicate-aware
       `medvision-ml split`.
-- [ ] Run the leakage check on the real dataset; if leakage is found,
-      re-split and re-baseline. **Needs the dataset (not in the repo).**
+- [x] Dataset chosen (D21): `medvision-ml prepare-isic2019` converts the
+      ISIC 2019 release and records lesion groups; `split` and
+      `check-leakage` respect them (D22).
+- [ ] Run prepare → split → check-leakage on the downloaded images (9.8 GB,
+      done on the training machine).
 - [x] Unit tests: config parsing, class-weight computation, model builder
       output shapes (`weights=None`), metrics functions, Grad-CAM parity, and
       an end-to-end train → evaluate → Grad-CAM smoke test.
@@ -341,9 +345,9 @@ with green CI and an updated README section.
       diff ≤ 1e-3; JPEG ≤ 2.0 because of decoder differences, see D15).
 - [x] Checksum-verified downloader (`python -m app.inference.download`,
       `make download-model`).
-- [ ] Publish the first release `model-v1.0.0`. **Blocked on §13 questions 1
-      and 2** (dataset licence and contributor agreement) because the weights
-      are derived from the dataset.
+- [ ] Train on ISIC 2019 (D21) on a free GPU (Kaggle/Colab), then publish
+      release `model-v2.0.0` under CC BY-NC 4.0. The weights no longer derive
+      from the prototype, so only the dataset licence applies to them.
 - **Done when:** a CLI `python -m app.inference.cli image.jpg` prints a
   prediction with no TensorFlow installed. ✅ Verified with the exported
   prototype model (16 ms per prediction, 74 ms with explanation, CPU).
@@ -498,21 +502,22 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D18 | 2026-10-16 | Model download logic lives in `backend/app/inference/download.py` (not `scripts/`); files are verified and moved atomically, metadata written last | testable, reusable by the Docker build, a partial download never looks complete |
 | D19 | 2026-10-16 | `tf2onnx`, `onnx`, `onnxruntime` are regular `ml` dependencies, not an extra | `uv run` prunes extras; the export and parity tests must always run |
 | D20 | 2026-10-16 | Heatmap and overlay PNGs use `compress_level=1` | `optimize=True` took ~400 ms per explanation; now ~60 ms |
+| D21 | 2026-10-16 | Training data is the ISIC 2019 training release (25,331 dermoscopic images, CC BY-NC). Classes become ISIC's 8: AK, BCC, Benign Keratosis, DF, Melanoma, Melanocytic Nevus, SCC, Vascular Lesion. Acne is dropped. Model weights are published under CC BY-NC 4.0 with attribution | documented, expert-labelled and redistributable for non-commercial use; acne has no comparable free dataset and is a different imaging modality (shortcut-learning risk). See `docs/DATASETS.md` |
+| D22 | 2026-10-16 | Splits are grouped by ISIC `lesion_id` merged with near-duplicate groups; `check-leakage` also fails when a lesion spans splits (`groups.csv`) | 16,459 of 25,331 images belong to multi-image lesions; per-image splitting would leak lesions into the test set |
+| D23 | 2026-10-16 | The prototype model (with Acne) is used only for development until an ISIC 2019 model is trained; the new model is a MAJOR version (`skin-effb0-v2.0.0`) | its classes and data provenance differ; release rule in §10 |
 
 ---
 
 ## 13. Open questions (resolve before the phase that needs them)
 
-1. **Dataset provenance and license** (Phase 2): where does
-   "FYP skin disease Dataset" come from (ISIC, DermNet, Kaggle acne sets?),
-   and may derived artifacts be published?
+1. ~~**Dataset provenance and license**~~ **Resolved (D21):** retrain on ISIC
+   2019 (CC BY-NC 4.0); weights published under CC BY-NC 4.0 with attribution.
 2. **Attribution and license** (Phase 1): the prototype was built with other
    contributors. Confirm the license and credit them in the README.
 3. **Does a skin-tone label or proxy exist** for the fairness analysis
    (Phase 6)?
-4. **Leakage on the real dataset** (Phase 2): the prototype only checked
-   exact (MD5) duplicates for skin and reported none; near-duplicates were
-   never checked. Run `medvision-ml check-leakage` on the dataset.
+4. **Leakage on the real dataset** (Phase 2): superseded by D21/D22. The
+   ISIC 2019 split is lesion-grouped and checked by `check-leakage`.
 5. **Which baseline model to ship first** (Phase 3): the 76.3% baseline or the
    sqrt-weighted 73.9% model. Decide with the §8 selection metric after
    calibration.

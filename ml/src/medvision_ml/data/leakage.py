@@ -6,6 +6,7 @@ optimistic numbers. This module fingerprints every image and reports:
 * exact duplicates (identical bytes) that appear in more than one split,
 * near-duplicates (difference-hash distance at or below a threshold) across splits,
 * label conflicts: the same image filed under different classes,
+* groups (e.g. one lesion photographed several times) spread over several splits,
 * files that cannot be decoded.
 """
 
@@ -13,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,7 @@ from typing import Any
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
+from medvision_ml.data.groups import groups_across_splits
 from medvision_ml.data.hashing import dhash, hamming_distances, md5_file
 from medvision_ml.data.images import ImageRecord
 
@@ -63,6 +65,7 @@ class LeakageReport:
     exact_cross_split: list[DuplicatePair] = field(default_factory=list)
     exact_within_split: list[DuplicatePair] = field(default_factory=list)
     near_cross_split: list[DuplicatePair] = field(default_factory=list)
+    group_cross_split: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def label_conflicts(self) -> list[DuplicatePair]:
@@ -71,7 +74,7 @@ class LeakageReport:
 
     @property
     def has_leakage(self) -> bool:
-        return bool(self.exact_cross_split or self.near_cross_split)
+        return bool(self.exact_cross_split or self.near_cross_split or self.group_cross_split)
 
     def summary(self) -> dict[str, int]:
         return {
@@ -80,6 +83,7 @@ class LeakageReport:
             "exact_cross_split_pairs": len(self.exact_cross_split),
             "exact_within_split_pairs": len(self.exact_within_split),
             "near_cross_split_pairs": len(self.near_cross_split),
+            "groups_across_splits": len(self.group_cross_split),
             "label_conflicts": len(self.label_conflicts),
         }
 
@@ -91,6 +95,7 @@ class LeakageReport:
             "exact_cross_split": [asdict(p) for p in self.exact_cross_split],
             "exact_within_split": [asdict(p) for p in self.exact_within_split],
             "near_cross_split": [asdict(p) for p in self.near_cross_split],
+            "group_cross_split": self.group_cross_split,
         }
 
 
@@ -178,8 +183,19 @@ def find_near_duplicates(
     return pairs
 
 
-def check_leakage(records: Sequence[ImageRecord], max_distance: int) -> LeakageReport:
-    """Fingerprint ``records`` and report duplicates that cross split boundaries."""
+def check_leakage(
+    records: Sequence[ImageRecord],
+    max_distance: int,
+    groups: Mapping[str, str] | None = None,
+) -> LeakageReport:
+    """Fingerprint ``records`` and report duplicates that cross split boundaries.
+
+    Args:
+        records: Images with their split and label.
+        max_distance: dHash distance at or below which images count as near-duplicates.
+        groups: Optional ``file name -> group`` mapping (e.g. lesion ids); groups
+            present in more than one split are reported as leakage.
+    """
     LOGGER.info("Fingerprinting %d images.", len(records))
     fingerprints, failed = fingerprint_all(records)
     exact_cross, exact_within = find_exact_duplicates(fingerprints)
@@ -191,6 +207,7 @@ def check_leakage(records: Sequence[ImageRecord], max_distance: int) -> LeakageR
         exact_cross_split=exact_cross,
         exact_within_split=exact_within,
         near_cross_split=near_cross,
+        group_cross_split=groups_across_splits(records, groups) if groups else {},
     )
     LOGGER.info("Leakage summary: %s", report.summary())
     return report

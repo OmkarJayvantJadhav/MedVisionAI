@@ -15,6 +15,11 @@ Settings live in [`configs/skin.yaml`](configs/skin.yaml). Override any value
 with an environment variable `MEDVISION__<SECTION>__<KEY>`, for example
 `MEDVISION__TRAINING__EPOCHS=5`.
 
+## Dataset
+
+The model is trained on ISIC 2019; see [`docs/DATASETS.md`](../docs/DATASETS.md)
+for download, licence and preparation steps.
+
 ## Dataset layout
 
 ```
@@ -31,8 +36,9 @@ is not part of the repository.
 
 | Command | What it does |
 |---|---|
-| `medvision-ml check-leakage` | Finds exact and near-duplicate images (difference hash) that appear in more than one split, plus label conflicts and unreadable files. Exits with code 1 if leakage is found. |
-| `medvision-ml split --source raw/` | Builds stratified 80/10/10 splits from a folder of class folders. Near-duplicates are grouped first so every copy of an image lands in the same split. |
+| `medvision-ml check-leakage` | Finds exact and near-duplicate images (difference hash) and lesions (`groups.csv`) that appear in more than one split, plus label conflicts and unreadable files. Exits with code 1 if leakage is found. |
+| `medvision-ml prepare-isic2019 ...` | Lays out the ISIC 2019 release as class folders and writes `groups.csv` (image → lesion). |
+| `medvision-ml split --source raw/` | Builds stratified 80/10/10 splits from a folder of class folders. Lesion groups (`groups.csv`) and near-duplicates are merged first so every photo of a lesion lands in the same split. |
 | `medvision-ml train [--run-name NAME]` | Stage 1 trains the head on a frozen ImageNet backbone; stage 2 fine-tunes the top backbone layers (batch-norm stays frozen). Uses square-root class weights by default. |
 | `medvision-ml evaluate --model PATH` | Writes `metrics.json`, a classification report, per-image predictions, a confusion matrix and a reliability diagram. Metrics include the malignant-group recall and calibration error used for model selection. |
 | `medvision-ml gradcam --model PATH --image IMG` | Saves a Grad-CAM overlay for one image. |

@@ -9,9 +9,10 @@ focused on, and a clear safety status.
 
 ## Planned features
 
-- 8-class classifier (Acne, Actinic Keratosis, Basal Cell Carcinoma,
-  Dermatofibroma, Melanocytic Nevus, Melanoma, Seborrheic Keratosis,
-  Squamous Cell Carcinoma) built on EfficientNetB0 transfer learning
+- 8-class classifier trained on the ISIC 2019 dermoscopy dataset (Actinic
+  Keratosis, Basal Cell Carcinoma, Benign Keratosis, Dermatofibroma, Melanocytic
+  Nevus, Melanoma, Squamous Cell Carcinoma, Vascular Lesion) built on
+  EfficientNetB0 transfer learning, with lesion-grouped splits to prevent leakage
 - Grad-CAM visual explanations
 - Calibrated probabilities, out-of-distribution rejection, and a
   malignancy-risk flag
@@ -34,7 +35,7 @@ make help    # list all targets
 | `ml/` | training, evaluation, calibration and ONNX export (TensorFlow) |
 | `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
 | `models/` | downloaded model artifacts (not committed) |
-| `docs/` | project plan and design documents |
+| `docs/` | project plan, dataset sources and licences, design documents |
 
 ## Disclaimer
 
