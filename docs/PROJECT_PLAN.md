@@ -315,13 +315,17 @@ with green CI and an updated README section.
 - **Done when:** `make lint test` passes locally and in CI.
 
 ### Phase 2 — Migrate the ML pipeline (skin only)
-- [ ] Port prototype modules into `ml/src/medvision_ml/` per §3; remove
+- [x] Port prototype modules into `ml/src/medvision_ml/` per §3; remove
       eye/oral paths; config from YAML + env vars; no directory creation or
       other side effects at import time.
-- [ ] Data leakage check script (perceptual-hash duplicates across splits)
-      with a report; fix the splits if leakage is found and re-baseline.
-- [ ] Unit tests: config parsing, class-weight computation, model builder
-      output shapes (tiny backbone or `weights=None`), metrics functions.
+- [x] Data leakage check (`medvision-ml check-leakage`: MD5 + dHash
+      duplicates across splits) with a JSON report, and a duplicate-aware
+      `medvision-ml split`.
+- [ ] Run the leakage check on the real dataset; if leakage is found,
+      re-split and re-baseline. **Needs the dataset (not in the repo).**
+- [x] Unit tests: config parsing, class-weight computation, model builder
+      output shapes (`weights=None`), metrics functions, Grad-CAM parity, and
+      an end-to-end train → evaluate → Grad-CAM smoke test.
 - **Done when:** `ml` tests pass in CI without the dataset (dataset-dependent
   tests are marked `@pytest.mark.data` and skipped in CI).
 
@@ -479,6 +483,11 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D7 | 2026-10-16 | Select models by malignant-group recall → macro F1 → ECE | patient safety over headline accuracy |
 | D8 | 2026-10-16 | LLM summary optional, provider-agnostic, off by default, template fallback | demo must run without keys; safety |
 | D9 | 2026-10-16 | `ml/` and `backend/` are independent uv projects with separate lockfiles (no uv workspace); one shared root `ruff.toml` | the backend image must not resolve TensorFlow; `ml/` is pinned to Python 3.11 for TF while the backend is not |
+| D10 | 2026-10-16 | Supported backbones: EfficientNetB0 (default), EfficientNetV2-S, ConvNeXt-Tiny, MobileNetV2; ResNet50 dropped. No `Lambda` layers: preprocessing is built into the backbone or done with `Rescaling` | `Lambda` layers only load in Keras unsafe mode (arbitrary code); ResNet50's channel-flip preprocessing would need one |
+| D11 | 2026-10-16 | Head is `pool → dropout → logits (Dense, linear) → probabilities (softmax)`; Grad-CAM targets the backbone output and differentiates the **logit** | exposes logits for temperature scaling; makes NumPy CAM exact. The prototype differentiated the softmax output at the last `Conv2D` (before BN + activation), which has no closed form. Verified on the prototype model: NumPy CAM vs TF Grad-CAM cosine 1.0, max abs diff 2.4e-7 |
+| D12 | 2026-10-16 | One `medvision-ml` console entry point with subcommands instead of `ml/scripts/*.py` | one tested CLI, no `sys.path` hacks |
+| D13 | 2026-10-16 | Splits are built per class from near-duplicate groups (dHash Hamming ≤ 4, union-find), largest-remainder allocation, SHA-256-derived per-class seed | copies of one image can never straddle splits; small classes still get validation/test images; seeds are stable across Python versions |
+| D14 | 2026-10-16 | Mixed precision only when a GPU is present; default class weighting `sqrt` | mixed precision slows CPU training; sqrt weights were the prototype's best trade-off |
 
 ---
 
@@ -491,7 +500,10 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
    contributors. Confirm the license and credit them in the README.
 3. **Does a skin-tone label or proxy exist** for the fairness analysis
    (Phase 6)?
-4. **Which baseline model to ship first** (Phase 3): the 76.3% baseline or the
+4. **Leakage on the real dataset** (Phase 2): the prototype only checked
+   exact (MD5) duplicates for skin and reported none; near-duplicates were
+   never checked. Run `medvision-ml check-leakage` on the dataset.
+5. **Which baseline model to ship first** (Phase 3): the 76.3% baseline or the
    sqrt-weighted 73.9% model. Decide with the §8 selection metric after
    calibration.
-5. **DVC remote** (Phase 9): choose only if the dataset can be shared.
+6. **DVC remote** (Phase 9): choose only if the dataset can be shared.

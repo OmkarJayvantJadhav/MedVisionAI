@@ -11,15 +11,16 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=1024"]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
-    hooks:
-      - id: ruff
-        args: ["--fix"]
-      - id: ruff-format
-
+  # Lint, format and type checks use the versions locked in each package, so
+  # hooks and CI always agree.
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff (lint + format check)
+        entry: make lint
+        language: system
+        pass_filenames: false
+        types: [python]
       - id: mypy
         name: mypy (strict)
         entry: make typecheck

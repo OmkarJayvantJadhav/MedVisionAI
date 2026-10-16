@@ -1,0 +1,52 @@
+# Skin-lesion classifier configuration.
+# Relative paths resolve against the ml/ directory. Any value can be overridden
+# with an environment variable: MEDVISION__<SECTION>__<KEY>, for example
+# MEDVISION__TRAINING__EPOCHS=5 or MEDVISION__PATHS__DATA_DIR=/mnt/skin.
+
+seed: 42
+
+paths:
+  data_dir: data/skin            # contains Train/, Validation/, Test/ with one folder per class
+  output_dir: outputs
+  model_dir: artifacts
+
+data:
+  image_size: 224
+  batch_size: 32
+  cache: true
+  shuffle_buffer_size: 1024
+  split_ratios: [0.80, 0.10, 0.10]
+  near_duplicate_max_distance: 4  # dHash Hamming distance (out of 64 bits)
+
+augmentation:
+  horizontal_flip: true
+  rotation: 0.15
+  zoom: 0.20
+  contrast: 0.15
+
+model:
+  backbone: efficientnetb0       # efficientnetb0 | efficientnetv2s | convnext_tiny | mobilenetv2
+  dropout: 0.30
+  pretrained: true               # ImageNet weights; false only for smoke tests
+
+training:
+  epochs: 50
+  learning_rate: 1.0e-4
+  fine_tune_epochs: 15
+  fine_tune_learning_rate: 1.0e-5
+  fine_tune_layers: 40           # final backbone layers unfrozen in stage 2
+  class_weighting: sqrt          # none | balanced | sqrt
+  mixed_precision: true
+  early_stopping_patience: 10
+  reduce_lr_patience: 4
+  reduce_lr_factor: 0.5
+  min_learning_rate: 1.0e-7
+
+evaluation:
+  # Malignant and pre-malignant classes used for the safety-weighted selection metric.
+  malignant_classes:
+    - Actinic Keratosis
+    - Basal Cell Carcinoma
+    - Melanoma
+    - Squamous Cell Carcinoma
+  calibration_bins: 15
