@@ -8,7 +8,7 @@ opacity. The disclaimer is always visible.
 ## Develop
 
 ```bash
-npm ci
+npm ci               # Node 24 (see .nvmrc; Node 22.22.2+ also works)
 npm run dev          # http://localhost:5173, proxies /api to http://localhost:8000
 ```
 
