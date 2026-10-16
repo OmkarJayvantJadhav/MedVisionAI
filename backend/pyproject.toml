@@ -4,11 +4,16 @@ version = "0.1.0"
 description = "FastAPI inference service for MedVision AI (ONNX Runtime, no TensorFlow)."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "numpy>=1.26",
+    "onnxruntime>=1.18",
+    "pillow>=10.3",
+]
 
 [dependency-groups]
 dev = [
   "mypy>=1.11",
+  "onnx>=1.16",
   "pytest>=8.3",
   "pytest-cov>=5.0",
   "ruff>=0.6",
@@ -21,6 +26,10 @@ package = false
 python_version = "3.11"
 strict = true
 files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime.*", "onnx.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

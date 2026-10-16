@@ -206,13 +206,12 @@ medvisionai/
 │   │   ├── main.py            # app factory, static frontend mount
 │   │   ├── api/v1/            # routers: predict, explain, health, meta
 │   │   ├── core/              # settings (pydantic-settings), logging, errors
-│   │   ├── inference/         # preprocessing, onnx session, cam, calibration, ood
+│   │   ├── inference/         # preprocessing, onnx session, cam, calibration, ood, download
 │   │   ├── services/          # summary (template + optional LLM), rag
 │   │   └── schemas/           # pydantic request/response models
 │   └── tests/
 ├── frontend/                  # React + Vite + TS
 ├── models/                    # downloaded artifacts (gitignored, has .gitkeep)
-├── scripts/download_model.py  # fetch + verify checksums
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Makefile                   # make setup / test / lint / run / docker
@@ -330,19 +329,24 @@ with green CI and an updated README section.
   tests are marked `@pytest.mark.data` and skipped in CI).
 
 ### Phase 3 — Export and inference core
-- [ ] Export ONNX with outputs `probabilities` and `feature_maps`, plus
+- [x] Export ONNX with outputs `probabilities` and `feature_maps`, plus
       `head_weights.npz` and `model_meta.json` (version, classes, input spec,
-      temperature, thresholds, SHA-256 checksums).
-- [ ] `backend/app/inference/`: Pillow preprocessing matching Keras resize;
-      ORT session (loaded once at startup); NumPy CAM; temperature scaling;
-      OOD and quality gate.
-- [ ] Parity tests on fixed fixture images: ONNX vs Keras probabilities
-      (max abs diff ≤ 1e-4), NumPy CAM vs TF Grad-CAM (cosine ≥ 0.99),
-      Pillow vs Keras preprocessing (max abs diff ≤ 1.0 pixel value).
-- [ ] `scripts/download_model.py` with checksum verification; publish the
-      first release `model-v1.0.0`.
+      temperature, thresholds, SHA-256 checksums): `medvision-ml export`.
+- [x] `backend/app/inference/`: preprocessing matching the training resize;
+      ORT session (loaded once); NumPy CAM; temperature scaling; OOD and
+      quality gate.
+- [x] Parity tests (`ml/tests/test_export_parity.py`): ONNX vs Keras
+      probabilities (≤ 1e-4), serving CAM vs TF Grad-CAM (cosine ≥ 0.99),
+      serving preprocessing vs `image_dataset_from_directory` (PNG mean abs
+      diff ≤ 1e-3; JPEG ≤ 2.0 because of decoder differences, see D15).
+- [x] Checksum-verified downloader (`python -m app.inference.download`,
+      `make download-model`).
+- [ ] Publish the first release `model-v1.0.0`. **Blocked on §13 questions 1
+      and 2** (dataset licence and contributor agreement) because the weights
+      are derived from the dataset.
 - **Done when:** a CLI `python -m app.inference.cli image.jpg` prints a
-  prediction with no TensorFlow installed.
+  prediction with no TensorFlow installed. ✅ Verified with the exported
+  prototype model (16 ms per prediction, 74 ms with explanation, CPU).
 
 ### Phase 4 — Backend API
 - [ ] Endpoints per §7, settings via `pydantic-settings`, structured JSON
@@ -488,6 +492,12 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D12 | 2026-10-16 | One `medvision-ml` console entry point with subcommands instead of `ml/scripts/*.py` | one tested CLI, no `sys.path` hacks |
 | D13 | 2026-10-16 | Splits are built per class from near-duplicate groups (dHash Hamming ≤ 4, union-find), largest-remainder allocation, SHA-256-derived per-class seed | copies of one image can never straddle splits; small classes still get validation/test images; seeds are stable across Python versions |
 | D14 | 2026-10-16 | Mixed precision only when a GPU is present; default class weighting `sqrt` | mixed precision slows CPU training; sqrt weights were the prototype's best trade-off |
+| D15 | 2026-10-16 | Serving decodes with Pillow (EXIF orientation applied) and resizes with a NumPy re-implementation of `tf.image.resize` bilinear (half-pixel centres, no antialias) | matches the training pipeline exactly for lossless input. The prototype's inference used `load_img` (nearest-neighbour), which did not match training. JPEG still differs by ~1 grey level because TF uses the fast integer DCT |
+| D16 | 2026-10-16 | Export freezes variables to constants, then converts with tf2onnx (opset 17); the backend recomputes logits from `feature_maps` and the head weights instead of using the `probabilities` output | without freezing, EfficientNet's normalisation statistics become graph inputs; recomputing logits gives temperature scaling and the energy score from one forward pass |
+| D17 | 2026-10-16 | Provisional thresholds until Phase 6: low confidence < 0.50, malignant-group probability ≥ 0.30, brightness 20–235, sharpness ≥ 5, OOD gate off; responses report `thresholds_fitted: false` | errs towards flagging; the sharpness bound is low because dermoscopy images are naturally smooth |
+| D18 | 2026-10-16 | Model download logic lives in `backend/app/inference/download.py` (not `scripts/`); files are verified and moved atomically, metadata written last | testable, reusable by the Docker build, a partial download never looks complete |
+| D19 | 2026-10-16 | `tf2onnx`, `onnx`, `onnxruntime` are regular `ml` dependencies, not an extra | `uv run` prunes extras; the export and parity tests must always run |
+| D20 | 2026-10-16 | Heatmap and overlay PNGs use `compress_level=1` | `optimize=True` took ~400 ms per explanation; now ~60 ms |
 
 ---
 

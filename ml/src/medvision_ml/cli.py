@@ -109,6 +109,27 @@ def _gradcam(args: argparse.Namespace, config: ProjectConfig) -> int:
     return 0
 
 
+def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.export.onnx_export import export_model
+    from medvision_ml.models.io import load_class_names, load_model
+
+    model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
+    class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))
+    output = args.output or config.model_dir / "export" / args.version
+    result = export_model(
+        model,
+        output,
+        class_names=class_names,
+        malignant_classes=config.evaluation.malignant_classes,
+        model_version=args.version,
+        backbone=args.backbone or config.model.backbone,
+        image_size=config.data.image_size,
+    )
+    print(f"Exported to {result.directory}")
+    print(f"Max ONNX/Keras probability difference: {result.max_probability_diff:.2e}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="medvision-ml", description=__doc__)
     parser.add_argument(
@@ -142,6 +163,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, handler, help_text in (
         ("evaluate", _evaluate, "evaluate a saved model on a split"),
         ("gradcam", _gradcam, "explain one image with Grad-CAM"),
+        ("export", _export, "export a model to ONNX serving artifacts"),
     ):
         sub = commands.add_parser(name, help=help_text)
         sub.add_argument("--model", type=Path, required=True)
@@ -154,6 +176,9 @@ def build_parser() -> argparse.ArgumentParser:
         sub.set_defaults(handler=handler)
         if name == "evaluate":
             sub.add_argument("--split", default="Test", choices=["Train", "Validation", "Test"])
+        elif name == "export":
+            sub.add_argument("--version", required=True, help="e.g. skin-effb0-v1.0.0")
+            sub.add_argument("--backbone", default=None, help="recorded in the metadata")
         else:
             sub.add_argument("--image", type=Path, required=True)
             sub.add_argument("--class-index", type=int, default=None)
