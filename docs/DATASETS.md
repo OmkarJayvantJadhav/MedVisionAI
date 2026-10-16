@@ -29,6 +29,13 @@ the same lesion in both training and test sets and overstate accuracy, so the
 split is grouped by `lesion_id` (and by near-duplicate pixels as a second line
 of defence).
 
+**Duplicates with conflicting labels.** The source collections overlap, and a
+few identical images appear under two different diagnoses. `split` keeps one
+copy of each identical image, drops every copy whose label disagrees (the true
+diagnosis is unknown), and records the removed files in
+`outputs/split_removed.json`. Near-duplicates with different labels are kept
+but always placed in the same split.
+
 ### Why ISIC 2019 and not the prototype's dataset
 
 The prototype's dataset had no documented source or licence and mixed acne

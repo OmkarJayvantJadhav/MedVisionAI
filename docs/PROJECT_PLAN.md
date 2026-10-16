@@ -528,6 +528,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D31 | 2026-10-16 | Frontend in plain JavaScript (JSX), no TypeScript | owner's decision. API contract safety comes from a committed OpenAPI snapshot instead: the backend test fails when it is stale, and frontend tests validate mock responses against it |
 | D32 | 2026-10-16 | The UI makes one `/explain` call per analysis and layers the heatmap PNG over the user's own image in the browser; opacity is a CSS change | one round trip (~90 ms) gives result and heatmap; the slider needs no extra requests. Both images share the aspect ratio (EXIF orientation is applied on both sides) |
 | D33 | 2026-10-16 | The footer links to the dataset page instead of naming the training data | the served model can be the prototype or the ISIC model; the UI must not state something about the model that may be untrue |
+| D34 | 2026-10-16 | Before splitting, identical copies of an image are reduced to one; when copies disagree on the diagnosis all of them are dropped (listed in `outputs/split_removed.json`). Duplicate groups that mix labels are stratified under their most common label so they stay in one split | the first real ISIC 2019 split had 2 exact and 24 near-duplicate pairs across splits, all from images filed under two diagnoses (26 label conflicts); a conflicting label is unknown ground truth |
 
 ---
 
