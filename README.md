@@ -18,6 +18,24 @@ focused on, and a clear safety status.
 - FastAPI backend served with ONNX Runtime, React frontend, one-command
   Docker run, CI, and a public demo
 
+## Development
+
+Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. Python 3.11 is
+installed by uv if missing.
+
+```bash
+make setup   # install dependencies for ml/ and backend/ and the git hooks
+make check   # lint, type check and test everything (same as CI)
+make help    # list all targets
+```
+
+| Folder | Contents |
+|---|---|
+| `ml/` | training, evaluation, calibration and ONNX export (TensorFlow) |
+| `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
+| `models/` | downloaded model artifacts (not committed) |
+| `docs/` | project plan and design documents |
+
 ## Disclaimer
 
 This project is for education and screening research only. It is **not** a

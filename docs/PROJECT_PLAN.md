@@ -306,11 +306,12 @@ with green CI and an updated README section.
 - [x] Project plan, README stub.
 
 ### Phase 1 — Repo tooling
-- [ ] `.gitignore`, `.editorconfig`, `pre-commit`, `Makefile`, root README
-      skeleton, MIT license (confirm with all original contributors first,
-      see §13).
-- [ ] CI workflow: ruff, mypy, pytest for `ml/` and `backend/` (initially
-      passing on empty test suites), frontend lint/build placeholder.
+- [x] `.gitignore`, `.editorconfig`, `pre-commit`, `Makefile`, root README
+      skeleton.
+- [ ] MIT license — blocked on §13 question 2 (confirm with all original
+      contributors first).
+- [x] CI workflow: ruff, mypy, pytest for `ml/` and `backend/` (initially
+      passing on placeholder tests), frontend lint/build placeholder.
 - **Done when:** `make lint test` passes locally and in CI.
 
 ### Phase 2 — Migrate the ML pipeline (skin only)
@@ -477,6 +478,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D6 | 2026-10-16 | Model binaries in GitHub Releases (+ HF Hub mirror), not in git | repo size; versioned, checksum-verified artifacts |
 | D7 | 2026-10-16 | Select models by malignant-group recall → macro F1 → ECE | patient safety over headline accuracy |
 | D8 | 2026-10-16 | LLM summary optional, provider-agnostic, off by default, template fallback | demo must run without keys; safety |
+| D9 | 2026-10-16 | `ml/` and `backend/` are independent uv projects with separate lockfiles (no uv workspace); one shared root `ruff.toml` | the backend image must not resolve TensorFlow; `ml/` is pinned to Python 3.11 for TF while the backend is not |
 
 ---
 

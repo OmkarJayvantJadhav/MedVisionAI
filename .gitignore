@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Data, models and generated outputs (never committed)
+data/
+ml/data/
+models/*
+!models/.gitkeep
+*.keras
+*.h5
+*.onnx
+*.tflite
+*.npz
+ml/mlruns/
+ml/outputs/
+ml/checkpoints/
+ml/logs/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
