@@ -529,6 +529,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D32 | 2026-10-16 | The UI makes one `/explain` call per analysis and layers the heatmap PNG over the user's own image in the browser; opacity is a CSS change | one round trip (~90 ms) gives result and heatmap; the slider needs no extra requests. Both images share the aspect ratio (EXIF orientation is applied on both sides) |
 | D33 | 2026-10-16 | The footer links to the dataset page instead of naming the training data | the served model can be the prototype or the ISIC model; the UI must not state something about the model that may be untrue |
 | D34 | 2026-10-16 | Before splitting, identical copies of an image are reduced to one; when copies disagree on the diagnosis all of them are dropped (listed in `outputs/split_removed.json`). Duplicate groups that mix labels are stratified under their most common label so they stay in one split | the first real ISIC 2019 split had 2 exact and 24 near-duplicate pairs across splits, all from images filed under two diagnoses (26 label conflicts); a conflicting label is unknown ground truth |
+| D35 | 2026-10-17 | The input pipeline loads single images, caches them, shuffles images (buffer 1,024 ≈ 600 MB) and only then batches | shuffling batches held ~1,000 batches (≈12 GB) in RAM and crashed the first ISIC run on a free Colab VM; it also kept the same images together in every epoch |
 
 ---
 

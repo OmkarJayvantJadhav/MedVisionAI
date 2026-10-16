@@ -55,12 +55,15 @@ def load_split(
     total = sum(counts.values())
     if total == 0:
         raise ValueError(f"No images found in {split_dir}")
+    # Load single images (batch_size=None) so the cache and the shuffle buffer
+    # hold images, not batches: shuffling batches kept the same images together
+    # every epoch and needed ~12 GB of RAM for ISIC 2019's shuffle buffer.
     dataset = tf.keras.utils.image_dataset_from_directory(
         split_dir,
         labels="inferred",
         label_mode="int",
         color_mode="rgb",
-        batch_size=config.batch_size,
+        batch_size=None,
         image_size=(config.image_size, config.image_size),
         shuffle=shuffle,
         seed=seed if shuffle else None,
@@ -76,6 +79,7 @@ def load_split(
         dataset = dataset.shuffle(
             min(config.shuffle_buffer_size, total), seed=seed, reshuffle_each_iteration=True
         )
+    dataset = dataset.batch(config.batch_size)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     LOGGER.info("Loaded %s: %d images in %d classes", split_dir, total, len(class_names))
     return LoadedSplit(dataset=dataset, class_names=class_names, file_paths=file_paths)
