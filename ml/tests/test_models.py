@@ -1,0 +1,118 @@
+"""Model construction and Grad-CAM parity, with random weights (no downloads)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import keras
+import numpy as np
+import pytest
+from medvision_ml.config import AugmentationConfig, ModelConfig
+from medvision_ml.explainability.gradcam import cam_from_features, gradcam, head_weights, overlay
+from medvision_ml.models.builder import (
+    BACKBONE_LAYER,
+    LOGITS_LAYER,
+    PROBABILITIES_LAYER,
+    build_model,
+    get_backbone,
+    unfreeze_top_layers,
+)
+from medvision_ml.models.io import load_class_names, load_model, save_model
+
+SIZE = 64
+CLASSES = 5
+
+
+@pytest.fixture(scope="module")
+def model() -> keras.Model:
+    keras.utils.set_random_seed(0)
+    return build_model(ModelConfig(), AugmentationConfig(), CLASSES, SIZE, weights=None)
+
+
+@pytest.fixture
+def image() -> np.ndarray:
+    return np.random.default_rng(0).uniform(0, 255, (SIZE, SIZE, 3)).astype(np.float32)
+
+
+def test_model_layout_and_output(model: keras.Model, image: np.ndarray) -> None:
+    names = [layer.name for layer in model.layers]
+    assert names[-3:] == ["dropout", LOGITS_LAYER, PROBABILITIES_LAYER]
+    assert BACKBONE_LAYER in names
+    assert not get_backbone(model).trainable
+    probs = np.asarray(model(image[None], training=False))
+    assert probs.shape == (1, CLASSES)
+    assert probs.sum() == pytest.approx(1.0, abs=1e-5)
+
+
+def test_mobilenet_rescales_raw_pixels() -> None:
+    model = build_model(
+        ModelConfig(backbone="mobilenetv2"), AugmentationConfig(), 3, 96, weights=None
+    )
+    assert "input_scaling" in [layer.name for layer in model.layers]
+
+
+def test_unfreeze_keeps_batch_norm_frozen(model: keras.Model) -> None:
+    clone = keras.models.clone_model(model)
+    unfrozen = unfreeze_top_layers(clone, 20)
+    backbone = get_backbone(clone)
+    assert 0 < unfrozen <= 20
+    for layer in backbone.layers[-20:]:
+        if isinstance(layer, keras.layers.BatchNormalization):
+            assert not layer.trainable
+    assert not any(layer.trainable for layer in backbone.layers[:-20])
+
+
+def test_build_rejects_single_class() -> None:
+    with pytest.raises(ValueError):
+        build_model(ModelConfig(), AugmentationConfig(), 1, SIZE, weights=None)
+
+
+def test_numpy_cam_matches_tensorflow_gradcam(model: keras.Model, image: np.ndarray) -> None:
+    kernel, _ = head_weights(model)
+    probs = np.asarray(model(image[None], training=False))[0]
+    for class_index in range(CLASSES):
+        result = gradcam(model, image, class_index)
+        np.testing.assert_allclose(result.probabilities, probs, atol=1e-5)
+        cam = cam_from_features(result.feature_maps, kernel, class_index)
+        if not cam.any() and not result.heatmap.any():
+            continue
+        cosine = (
+            cam.ravel()
+            @ result.heatmap.ravel()
+            / (np.linalg.norm(cam) * np.linalg.norm(result.heatmap))
+        )
+        assert cosine >= 0.999
+
+
+def test_gradcam_defaults_to_top_class_and_overlays(model: keras.Model, image: np.ndarray) -> None:
+    result = gradcam(model, image)
+    assert result.class_index == int(result.probabilities.argmax())
+    assert result.heatmap.min() >= 0.0 and result.heatmap.max() <= 1.0
+    blended = overlay(image, result.heatmap)
+    assert blended.shape == image.shape and blended.dtype == np.uint8
+
+
+def test_save_and_load_round_trip_without_unsafe_mode(
+    model: keras.Model, image: np.ndarray, tmp_path: Path
+) -> None:
+    names = [f"class_{i}" for i in range(CLASSES)]
+    names_path = save_model(model, tmp_path / "model.keras", names)
+    restored = load_model(tmp_path / "model.keras")
+    assert load_class_names(names_path) == names
+    np.testing.assert_allclose(
+        np.asarray(restored(image[None], training=False)),
+        np.asarray(model(image[None], training=False)),
+        atol=1e-6,
+    )
+
+
+def test_save_requires_keras_suffix(model: keras.Model, tmp_path: Path) -> None:
+    with pytest.raises(ValueError):
+        save_model(model, tmp_path / "model.h5", ["a", "b"])
+
+
+def test_load_class_names_validates(tmp_path: Path) -> None:
+    path = tmp_path / "names.json"
+    path.write_text('["only"]', encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_class_names(path)

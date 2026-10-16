@@ -22,19 +22,19 @@ frontend/dist/
 !.env.example
 
 # Data, models and generated outputs (never committed)
-data/
-ml/data/
-models/*
-!models/.gitkeep
+/data/
+/ml/data/
+/models/*
+!/models/.gitkeep
 *.keras
 *.h5
 *.onnx
 *.tflite
 *.npz
-ml/mlruns/
-ml/outputs/
-ml/checkpoints/
-ml/logs/
+/ml/mlruns/
+/ml/outputs/
+/ml/checkpoints/
+/ml/logs/
 
 # Editors and OS
 .idea/
@@ -42,3 +42,4 @@ ml/logs/
 *.swp
 .DS_Store
 Thumbs.db
+/ml/artifacts/
