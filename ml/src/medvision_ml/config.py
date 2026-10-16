@@ -39,6 +39,9 @@ class DataConfig:
     image_size: int = 224
     batch_size: int = 32
     cache: bool = True
+    # Cache decoded images in files under this folder instead of in memory.
+    # ISIC 2019 needs about 12 GB, more than a free Colab VM's RAM.
+    cache_dir: Path | None = None
     shuffle_buffer_size: int = 1024
     split_ratios: tuple[float, float, float] = (0.80, 0.10, 0.10)
     near_duplicate_max_distance: int = 4
@@ -149,6 +152,8 @@ T = TypeVar("T")
 def _coerce(value: Any, annotation: Any, key: str) -> Any:
     """Convert a raw YAML or environment value to the annotated field type."""
     origin = getattr(annotation, "__origin__", None)
+    if annotation == Path | None:
+        return None if value in (None, "", "null", "none") else Path(str(value))
     if annotation is Path:
         return Path(str(value))
     if annotation is bool:
@@ -259,4 +264,9 @@ def load_config(
 
     raw = _apply_env_overrides(loaded, os.environ if environ is None else environ)
     config = _build(ProjectConfig, raw, "")
-    return replace(config, root=config_path.resolve().parent.parent)
+    config = replace(config, root=config_path.resolve().parent.parent)
+    if config.data.cache_dir is not None:
+        config = replace(
+            config, data=replace(config.data, cache_dir=config.resolve(config.data.cache_dir))
+        )
+    return config

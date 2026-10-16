@@ -50,6 +50,16 @@ def test_groups_never_straddle_splits() -> None:
     assert all(len(splits) == 1 for splits in splits_per_group.values())
 
 
+def test_uneven_groups_still_fill_every_split() -> None:
+    # 12 images: six lesions with two photos each, then six single photos.
+    items = records("A", 12)
+    groups = [i // 2 if i < 6 else 100 + i for i in range(12)]
+    for seed in range(20):
+        counts = Counter(a.split for a in assign_splits(items, groups, RATIOS, seed=seed))
+        assert counts["Validation"] >= 1 and counts["Test"] >= 1, (seed, counts)
+        assert sum(counts.values()) == 12
+
+
 def test_assign_rejects_bad_inputs() -> None:
     with pytest.raises(ValueError):
         assign_splits(records("A", 3), [0, 1], RATIOS, seed=0)

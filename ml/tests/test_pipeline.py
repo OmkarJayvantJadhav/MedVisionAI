@@ -19,6 +19,7 @@ paths:
 data:
   image_size: 32
   batch_size: 4
+  cache_dir: cache
 model:
   pretrained: false
 training:
@@ -51,6 +52,7 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
     run_dir = tmp_path / "out" / "runs" / "smoke"
     assert json.loads((run_dir / "training_summary.json").read_text())["epochs_run"] == 2
     assert (run_dir / "history.png").is_file()
+    assert any((tmp_path / "cache").glob("train*")), "training split should be cached on disk"
 
     assert main([*args, "evaluate", "--model", str(model)]) == 0
     report = tmp_path / "out" / "evaluation" / "smoke" / "test"
