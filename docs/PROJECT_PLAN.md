@@ -357,16 +357,18 @@ with green CI and an updated README section.
   prototype model (16 ms per prediction, 74 ms with explanation, CPU).
 
 ### Phase 4 — Backend API
-- [ ] Endpoints per §7, settings via `pydantic-settings`, structured JSON
+- [x] Endpoints per §7, settings via `pydantic-settings`, structured JSON
       logging (request id, latency, status; never image content), upload
       validation, CORS restricted to configured origins, simple per-IP rate
-      limit.
-- [ ] Tests: happy path, invalid file types, oversized files, corrupted
-      image, non-skin image → `rejected`, low-confidence path, malignancy
-      flag logic, error body shape. Use a tiny fake ONNX model fixture for
-      fast unit tests; one integration test with the real model
-      (`@pytest.mark.model`).
+      limit. Reference: `docs/api.md`.
+- [x] Tests: happy path, invalid file types, oversized files, corrupted
+      image, rejected images, low-confidence path, malignancy flag logic,
+      error body shape, rate limiting, CORS, missing model, hidden internal
+      errors, access-log content. Uses the in-memory fake ONNX model; the
+      real-model checks live in the `ml` parity tests.
 - **Done when:** OpenAPI docs render at `/docs`, coverage of `app/` ≥ 85%.
+  ✅ 98% coverage; verified with uvicorn on the exported prototype model
+  (`/predict` ≈ 46 ms, `/explain` ≈ 92 ms end to end).
 
 ### Phase 5 — Frontend
 - [ ] Upload (drag and drop + camera capture on mobile), preview, results
@@ -512,6 +514,10 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D24 | 2026-10-16 | Train on Google Colab (free T4) through a notebook that only calls the `medvision-ml` CLI; every step fails fast; results are copied to Google Drive | free GPU; the notebook adds no logic of its own, so what runs there is what CI tests |
 | D25 | 2026-10-16 | `data.cache_dir` caches decoded images on disk | in-memory caching of ISIC 2019 needs ~12 GB, more than a free Colab VM |
 | D26 | 2026-10-16 | Splitting gives each lesion group (largest first) to the split furthest below its target | the cumulative-boundary method could leave a small class with no validation or test images when a multi-photo lesion overshot a quota (found in the notebook dry run) |
+| D27 | 2026-10-16 | App factory (`uvicorn app.main:create_app --factory`); the model loads once in the lifespan hook; if it fails the service still starts, `/health` is 200 and `/ready`, `/predict`, `/meta` return 503 | no side effects on import; orchestrators can tell "process up" from "model ready" |
+| D28 | 2026-10-16 | In-memory sliding-window rate limit (30 requests/min per client on `/api/`); `X-Forwarded-For` only when `MEDVISION_TRUST_FORWARDED_FOR=true` | enough for a single-instance demo without Redis; trusting the header by default would let clients bypass the limit |
+| D29 | 2026-10-16 | Error status mapping: 400 invalid image / unknown class, 413 too large, 415 wrong type, 422 validation, 429 rate limit, 503 model, 500 internal (details logged only) | one handler module; stable `code` values for the frontend |
+| D30 | 2026-10-16 | Summaries come from a deterministic `TemplateSummaryProvider` behind a `SummaryProvider` protocol | safe default with no external calls; Phase 8 adds an LLM provider behind the same interface |
 
 ---
 

@@ -3,6 +3,27 @@
 Serves predictions and Grad-CAM explanations for the skin-lesion classifier.
 Inference uses ONNX Runtime and NumPy only; TensorFlow is never installed here.
 
+## Run the API
+
+```bash
+uv sync
+MEDVISION_MODEL_DIR=../models uv run uvicorn app.main:create_app --factory --port 8000
+# or, from the repository root: make run
+curl -F file=@lesion.jpg http://localhost:8000/api/v1/predict
+```
+
+Open http://localhost:8000/docs for interactive documentation. Endpoints,
+response fields, error codes and configuration are described in
+[`docs/api.md`](../docs/api.md).
+
+| Package | Responsibility |
+|---|---|
+| `app/main.py` | App factory; loads the model once at startup and keeps the service up (with `/ready` = 503) if it cannot |
+| `app/api/v1/` | Routes; CPU-bound inference runs in a thread pool |
+| `app/core/` | Settings, JSON logging, error mapping, request IDs, rate limiting |
+| `app/schemas/` | Pydantic response models |
+| `app/services/summary.py` | Plain-language summaries that only restate the model output |
+
 ## Inference core (`app/inference/`)
 
 | Module | Responsibility |
