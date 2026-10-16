@@ -1,6 +1,6 @@
 PACKAGES := ml backend
 
-.PHONY: help setup lint format typecheck test check clean
+.PHONY: help setup lint format typecheck test check clean download-model predict
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -22,6 +22,12 @@ test: ## Run the test suites (excludes data and model tests)
 	@for p in $(PACKAGES); do (cd $$p && uv run pytest) || exit 1; done
 
 check: lint typecheck test ## Run every check CI runs
+
+download-model: ## Fetch and verify model artifacts: make download-model BASE_URL=<release folder URL>
+	cd backend && uv run python -m app.inference.download --base-url "$(BASE_URL)" --dest ../models
+
+predict: ## Classify images with the served model: make predict IMAGES="a.jpg b.png"
+	cd backend && uv run python -m app.inference.cli $(abspath $(IMAGES)) --model-dir ../models
 
 clean: ## Remove caches and build outputs
 	find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .mypy_cache -o -name .ruff_cache \) -prune -exec rm -rf {} +
