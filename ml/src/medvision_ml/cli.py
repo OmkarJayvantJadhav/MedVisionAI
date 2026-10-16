@@ -48,6 +48,7 @@ def _check_leakage(args: argparse.Namespace, config: ProjectConfig) -> int:
 
 
 def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.data.dedupe import deduplicate
     from medvision_ml.data.groups import group_keys, merge_groups, write_groups
     from medvision_ml.data.images import scan_class_dataset, scan_split_dataset
     from medvision_ml.data.isic2019 import GROUPS_FILE
@@ -58,6 +59,11 @@ def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
     fingerprints, failed = fingerprint_all(records)
     if failed:
         print(f"Skipping {len(failed)} unreadable images.", file=sys.stderr)
+    fingerprints, removed = deduplicate(fingerprints)
+    print(json.dumps(removed.summary(), indent=2))
+    report_path = config.output_dir / "split_removed.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(vars(removed), indent=2), encoding="utf-8")
     readable = [f.record for f in fingerprints]
     known = _groups_for(args.groups, args.source) or {}
     groups = merge_groups(

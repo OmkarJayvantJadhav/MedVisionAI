@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import random
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +25,12 @@ def _stable_seed(seed: int, label: str) -> int:
     """Derive a per-class seed that does not depend on Python's hash randomisation."""
     digest = hashlib.sha256(f"{seed}:{label}".encode()).digest()
     return int.from_bytes(digest[:8], "big")
+
+
+def _anchor_label(records: Sequence[ImageRecord]) -> str:
+    """Most common label in a group; ties go to the alphabetically first label."""
+    counts = Counter(r.label for r in records)
+    return min(counts, key=lambda label: (-counts[label], label))
 
 
 def _allocate(count: int, ratios: Sequence[float]) -> list[int]:
@@ -50,8 +56,9 @@ def assign_splits(
 ) -> list[SplitAssignment]:
     """Assign every record to a split, stratified by label and grouped by duplicates.
 
-    All records that share a group id land in the same split, so near-duplicate
-    images can never leak from training into evaluation. Per class, groups are
+    All records that share a group id land in the same split, even when their
+    labels differ, so near-duplicate images can never leak from training into
+    evaluation. Per class, groups are
     shuffled with a stable seed and each is given to the split furthest below
     its target size, which keeps every split populated when groups are uneven.
 
@@ -72,9 +79,15 @@ def assign_splits(
     if abs(sum(ratios) - 1.0) > 1e-6:
         raise ValueError("ratios must sum to 1.")
 
-    by_label: dict[str, dict[int, list[ImageRecord]]] = defaultdict(lambda: defaultdict(list))
+    members: dict[int, list[ImageRecord]] = defaultdict(list)
     for record, group in zip(records, groups, strict=True):
-        by_label[record.label][group].append(record)
+        members[group].append(record)
+    # A group can mix labels (the same picture filed under two diagnoses). It is
+    # stratified under its most common label so the whole group still lands in
+    # one split; each image keeps its own label.
+    by_label: dict[str, dict[int, list[ImageRecord]]] = defaultdict(dict)
+    for group, group_records in members.items():
+        by_label[_anchor_label(group_records)][group] = group_records
 
     assignments: list[SplitAssignment] = []
     for label in sorted(by_label):
