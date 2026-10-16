@@ -21,6 +21,7 @@ select = [
 "**/scripts/**" = ["T20"]
 "**/cli.py" = ["T20"]
 "**/inference/download.py" = ["T20"]
+"**/app/openapi.py" = ["T20"]
 
 [format]
 quote-style = "double"

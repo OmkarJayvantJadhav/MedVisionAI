@@ -16,8 +16,9 @@ focused on, and a clear safety status.
 - Grad-CAM visual explanations
 - Calibrated probabilities, out-of-distribution rejection, and a
   malignancy-risk flag
-- FastAPI backend served with ONNX Runtime, React frontend, one-command
-  Docker run, CI, and a public demo
+- FastAPI backend served with ONNX Runtime and a React frontend (drag and
+  drop or camera upload, risk badges, heatmap with adjustable opacity)
+- One-command Docker run, CI, and a public demo (planned)
 
 ## Train the model
 
@@ -35,7 +36,10 @@ installed by uv if missing.
 
 ```bash
 make setup   # install dependencies for ml/ and backend/ and the git hooks
-make check   # lint, type check and test everything (same as CI)
+make check   # lint, type check and test the Python packages (same as CI)
+make frontend-setup frontend-check   # install, lint, test and build the frontend
+make run            # API on http://localhost:8000 (needs model files in models/)
+make frontend-dev   # UI on http://localhost:5173, proxied to the API
 make help    # list all targets
 ```
 
@@ -43,6 +47,7 @@ make help    # list all targets
 |---|---|
 | `ml/` | training, evaluation, calibration and ONNX export (TensorFlow) |
 | `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
+| `frontend/` | React (JavaScript) + Vite + Tailwind web app |
 | `models/` | downloaded model artifacts (not committed) |
 | `docs/` | project plan, dataset sources and licences, design documents |
 | `notebooks/` | Colab notebook that trains, evaluates and exports the model |

@@ -1,6 +1,6 @@
 PACKAGES := ml backend
 
-.PHONY: help setup lint format typecheck test check clean download-model predict run
+.PHONY: help setup lint format typecheck test check clean download-model predict run frontend-setup frontend-check frontend-dev api-schema
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -31,6 +31,18 @@ run: ## Start the API on http://localhost:8000 (docs at /docs) using ../models
 
 predict: ## Classify images with the served model: make predict IMAGES="a.jpg b.png"
 	cd backend && uv run python -m app.inference.cli $(abspath $(IMAGES)) --model-dir ../models
+
+frontend-setup: ## Install frontend dependencies
+	cd frontend && npm ci
+
+frontend-check: ## Lint, test and build the frontend (same as CI)
+	cd frontend && npm run lint && npm test -- --run && npm run build
+
+frontend-dev: ## Start the frontend dev server on http://localhost:5173 (run `make run` too)
+	cd frontend && npm run dev
+
+api-schema: ## Regenerate frontend/src/api/openapi.json from the backend
+	cd backend && uv run python -m app.openapi
 
 clean: ## Remove caches and build outputs
 	find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .mypy_cache -o -name .ruff_cache \) -prune -exec rm -rf {} +
