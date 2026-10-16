@@ -345,9 +345,13 @@ with green CI and an updated README section.
       diff ≤ 1e-3; JPEG ≤ 2.0 because of decoder differences, see D15).
 - [x] Checksum-verified downloader (`python -m app.inference.download`,
       `make download-model`).
-- [ ] Train on ISIC 2019 (D21) on a free GPU (Kaggle/Colab), then publish
-      release `model-v2.0.0` under CC BY-NC 4.0. The weights no longer derive
-      from the prototype, so only the dataset licence applies to them.
+- [x] Colab notebook (`notebooks/train_colab.ipynb`) that prepares, splits,
+      leakage-checks, trains, evaluates and exports; dry-run end to end on
+      synthetic ISIC-format data.
+- [ ] Run the notebook on Colab (needs a Google account, done by the owner),
+      then publish release `model-v2.0.0` under CC BY-NC 4.0 from the exported
+      files. The weights no longer derive from the prototype, so only the
+      dataset licence applies to them.
 - **Done when:** a CLI `python -m app.inference.cli image.jpg` prints a
   prediction with no TensorFlow installed. ✅ Verified with the exported
   prototype model (16 ms per prediction, 74 ms with explanation, CPU).
@@ -505,6 +509,9 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D21 | 2026-10-16 | Training data is the ISIC 2019 training release (25,331 dermoscopic images, CC BY-NC). Classes become ISIC's 8: AK, BCC, Benign Keratosis, DF, Melanoma, Melanocytic Nevus, SCC, Vascular Lesion. Acne is dropped. Model weights are published under CC BY-NC 4.0 with attribution | documented, expert-labelled and redistributable for non-commercial use; acne has no comparable free dataset and is a different imaging modality (shortcut-learning risk). See `docs/DATASETS.md` |
 | D22 | 2026-10-16 | Splits are grouped by ISIC `lesion_id` merged with near-duplicate groups; `check-leakage` also fails when a lesion spans splits (`groups.csv`) | 16,459 of 25,331 images belong to multi-image lesions; per-image splitting would leak lesions into the test set |
 | D23 | 2026-10-16 | The prototype model (with Acne) is used only for development until an ISIC 2019 model is trained; the new model is a MAJOR version (`skin-effb0-v2.0.0`) | its classes and data provenance differ; release rule in §10 |
+| D24 | 2026-10-16 | Train on Google Colab (free T4) through a notebook that only calls the `medvision-ml` CLI; every step fails fast; results are copied to Google Drive | free GPU; the notebook adds no logic of its own, so what runs there is what CI tests |
+| D25 | 2026-10-16 | `data.cache_dir` caches decoded images on disk | in-memory caching of ISIC 2019 needs ~12 GB, more than a free Colab VM |
+| D26 | 2026-10-16 | Splitting gives each lesion group (largest first) to the split furthest below its target | the cumulative-boundary method could leave a small class with no validation or test images when a multi-photo lesion overshot a quota (found in the notebook dry run) |
 
 ---
 

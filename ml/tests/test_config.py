@@ -8,7 +8,7 @@ from medvision_ml.config import DEFAULT_CONFIG_PATH, ConfigError, load_config
 
 def write(tmp_path: Path, text: str) -> Path:
     configs = tmp_path / "configs"
-    configs.mkdir()
+    configs.mkdir(parents=True)
     path = configs / "test.yaml"
     path.write_text(text, encoding="utf-8")
     return path
@@ -40,6 +40,7 @@ def test_environment_overrides_are_typed(tmp_path: Path) -> None:
         "MEDVISION__TRAINING__MIXED_PRECISION": "false",
         "MEDVISION__MODEL__BACKBONE": "MobileNetV2",
         "MEDVISION__SEED": "7",
+        "MEDVISION__DATA__CACHE_DIR": "/tmp/cache",
         "UNRELATED": "ignored",
     }
     config = load_config(write(tmp_path, "training:\n  epochs: 50\n"), environ=env)
@@ -47,6 +48,10 @@ def test_environment_overrides_are_typed(tmp_path: Path) -> None:
     assert config.training.mixed_precision is False
     assert config.model.backbone == "mobilenetv2"
     assert config.seed == 7
+    assert config.data.cache_dir == Path("/tmp/cache")
+    assert load_config(write(tmp_path / "x", "{}\n"), environ={}).data.cache_dir is None
+    relative = load_config(write(tmp_path / "y", "data:\n  cache_dir: c\n"), environ={})
+    assert relative.data.cache_dir == tmp_path / "y" / "c"
 
 
 @pytest.mark.parametrize(

@@ -19,6 +19,15 @@ focused on, and a clear safety status.
 - FastAPI backend served with ONNX Runtime, React frontend, one-command
   Docker run, CI, and a public demo
 
+## Train the model
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/OmkarJayvantJadhav/MedVisionAI/blob/main/notebooks/train_colab.ipynb)
+
+The notebook trains on ISIC 2019 with a free Colab GPU, checks the splits for
+leakage, evaluates on the held-out test set and exports the serving files to
+Google Drive. See [`docs/DATASETS.md`](docs/DATASETS.md) for the data and its
+licence.
+
 ## Development
 
 Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. Python 3.11 is
@@ -36,6 +45,7 @@ make help    # list all targets
 | `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
 | `models/` | downloaded model artifacts (not committed) |
 | `docs/` | project plan, dataset sources and licences, design documents |
+| `notebooks/` | Colab notebook that trains, evaluates and exports the model |
 
 ## Disclaimer
 

@@ -62,11 +62,16 @@ uv run medvision-ml check-leakage                        # must exit 0
 
 ### Training on a free GPU
 
-Training EfficientNetB0 on 20k images is impractical on a CPU. Kaggle Notebooks
-(about 30 GPU hours per week) and Google Colab both work: clone the repository,
-install [uv](https://docs.astral.sh/uv/), run the preparation steps above, then
-`uv run medvision-ml train`. Copy `artifacts/<run>/` back before the session
-ends.
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/OmkarJayvantJadhav/MedVisionAI/blob/main/notebooks/train_colab.ipynb)
+
+[`notebooks/train_colab.ipynb`](../notebooks/train_colab.ipynb) runs every step
+above on a free Colab T4 GPU, then trains, evaluates and exports the model and
+copies the results to Google Drive (`MyDrive/medvisionai/`). Choose *Runtime →
+Change runtime type → T4 GPU*, then *Runtime → Run all*. Any failing step,
+including a leakage check, stops the notebook.
+
+Decoded images are cached on disk (`MEDVISION__DATA__CACHE_DIR`) because the
+full set needs about 12 GB, more than a free Colab VM's RAM.
 
 ### Required attribution
 

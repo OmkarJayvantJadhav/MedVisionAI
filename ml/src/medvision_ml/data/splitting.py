@@ -51,8 +51,9 @@ def assign_splits(
     """Assign every record to a split, stratified by label and grouped by duplicates.
 
     All records that share a group id land in the same split, so near-duplicate
-    images can never leak from training into evaluation. Groups are shuffled per
-    class with a stable seed, then allocated to splits by cumulative image count.
+    images can never leak from training into evaluation. Per class, groups are
+    shuffled with a stable seed and each is given to the split furthest below
+    its target size, which keeps every split populated when groups are uneven.
 
     Args:
         records: Source images (their ``split`` field is ignored).
@@ -80,18 +81,20 @@ def assign_splits(
         label_groups = [sorted(g, key=lambda r: str(r.path)) for g in by_label[label].values()]
         label_groups.sort(key=lambda g: str(g[0].path))
         random.Random(_stable_seed(seed, label)).shuffle(label_groups)
+        # Largest groups first (stable, so equal sizes keep their shuffled order):
+        # they are the hardest to fit, and small groups then fill the gaps.
+        label_groups.sort(key=len, reverse=True)
 
-        total = sum(len(g) for g in label_groups)
-        targets = _allocate(total, ratios)
-        boundaries = [sum(targets[: i + 1]) for i in range(len(targets))]
-        assigned = 0
+        targets = _allocate(sum(len(g) for g in label_groups), ratios)
+        filled = [0] * len(targets)
         for group_records in label_groups:
-            # Place the whole group in the split whose quota its first image falls into.
-            split_index = next(i for i, b in enumerate(boundaries) if assigned < b)
+            # Give the whole group to the split furthest below its target, so every
+            # split with a non-zero target receives images while groups remain.
+            split_index = max(range(len(targets)), key=lambda i: (targets[i] - filled[i], -i))
             assignments.extend(
                 SplitAssignment(record=r, split=split_names[split_index]) for r in group_records
             )
-            assigned += len(group_records)
+            filled[split_index] += len(group_records)
     return assignments
 
 

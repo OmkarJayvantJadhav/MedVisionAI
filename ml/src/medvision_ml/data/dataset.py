@@ -67,7 +67,10 @@ def load_split(
     )
     class_names = list(dataset.class_names)
     file_paths = [] if shuffle else list(dataset.file_paths)
-    if config.cache:
+    if config.cache and config.cache_dir is not None:
+        config.cache_dir.mkdir(parents=True, exist_ok=True)
+        dataset = dataset.cache(str(config.cache_dir / split_dir.name.lower()))
+    elif config.cache:
         dataset = dataset.cache()
     if shuffle:
         dataset = dataset.shuffle(
