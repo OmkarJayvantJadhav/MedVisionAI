@@ -163,8 +163,8 @@ revisit this decision in §12.
 | Serving runtime | ONNX Runtime (CPU) | 50× faster than Keras in benchmarks, small image, no TF |
 | API | FastAPI + Pydantic v2 + Uvicorn | typed contracts, auto OpenAPI docs |
 | Image I/O | Pillow + NumPy | must replicate `tf.keras.utils.load_img` resize (bilinear) — covered by a parity test |
-| Frontend | React + TypeScript + Vite + Tailwind | industry standard; rejected Streamlit/Gradio as primary UI (may add a Gradio demo later only if needed) |
-| Lint / format / types | ruff (lint + format), mypy (strict on `backend/` and `ml/src`), ESLint + Prettier, `tsc --noEmit` | |
+| Frontend | React (JavaScript, JSX) + Vite + Tailwind | industry standard; plain JavaScript by owner's choice (D31); rejected Streamlit/Gradio as primary UI |
+| Lint / format / types | ruff (lint + format), mypy (strict on `backend/` and `ml/src`), ESLint + Prettier for the frontend | |
 | Tests | pytest (+ httpx TestClient), Vitest for frontend | |
 | Pre-commit | `pre-commit` running ruff, mypy, end-of-file fixers | |
 | CI | GitHub Actions | free for public repos |
@@ -211,7 +211,7 @@ medvisionai/
 │   │   ├── services/          # summary (template + optional LLM), rag
 │   │   └── schemas/           # pydantic request/response models
 │   └── tests/
-├── frontend/                  # React + Vite + TS
+├── frontend/                  # React (JavaScript) + Vite + Tailwind
 ├── models/                    # downloaded artifacts (gitignored, has .gitkeep)
 ├── Dockerfile
 ├── docker-compose.yml
@@ -371,14 +371,21 @@ with green CI and an updated README section.
   (`/predict` ≈ 46 ms, `/explain` ≈ 92 ms end to end).
 
 ### Phase 5 — Frontend
-- [ ] Upload (drag and drop + camera capture on mobile), preview, results
+- [x] Upload (drag and drop + camera capture on mobile), preview, results
       card with top-3 bars, status and risk badges, heatmap/overlay toggle
       with an opacity slider, disclaimer always visible, loading and error
       states, responsive layout, accessible (labels, contrast, keyboard).
-- [ ] API client typed from the OpenAPI schema.
-- [ ] Vitest tests for the results rendering and status badge logic.
+- [x] API client in plain JavaScript; frontend tests check their mock
+      responses against the committed OpenAPI schema
+      (`frontend/src/api/openapi.json`), and a backend test fails if that
+      schema is stale.
+- [x] Vitest tests for the results rendering, status badge logic, upload
+      panel, API client and the full upload → result flow.
 - **Done when:** the production build is served by FastAPI from one
-  container.
+  container. ✅ Verified locally: FastAPI serves `frontend/dist` with
+  `MEDVISION_STATIC_DIR`, and a headless-Chromium run (desktop and mobile)
+  completed upload → result with no console errors. The container itself
+  is Phase 7.
 
 ### Phase 6 — Responsible-AI evaluation
 - [ ] Calibration (temperature scaling, ECE, reliability diagram).
@@ -473,7 +480,7 @@ and summarized in an ablation table.
 
 ## 11. Quality gates (CI must enforce)
 
-- ruff, mypy, ESLint, `tsc` clean.
+- ruff, mypy, ESLint and Prettier clean.
 - pytest (backend coverage ≥ 85%), Vitest.
 - Parity tests (§9 Phase 3) in the `model` job.
 - Docker image builds; container `/ready` returns 200 in a smoke step.
@@ -518,6 +525,9 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D28 | 2026-10-16 | In-memory sliding-window rate limit (30 requests/min per client on `/api/`); `X-Forwarded-For` only when `MEDVISION_TRUST_FORWARDED_FOR=true` | enough for a single-instance demo without Redis; trusting the header by default would let clients bypass the limit |
 | D29 | 2026-10-16 | Error status mapping: 400 invalid image / unknown class, 413 too large, 415 wrong type, 422 validation, 429 rate limit, 503 model, 500 internal (details logged only) | one handler module; stable `code` values for the frontend |
 | D30 | 2026-10-16 | Summaries come from a deterministic `TemplateSummaryProvider` behind a `SummaryProvider` protocol | safe default with no external calls; Phase 8 adds an LLM provider behind the same interface |
+| D31 | 2026-10-16 | Frontend in plain JavaScript (JSX), no TypeScript | owner's decision. API contract safety comes from a committed OpenAPI snapshot instead: the backend test fails when it is stale, and frontend tests validate mock responses against it |
+| D32 | 2026-10-16 | The UI makes one `/explain` call per analysis and layers the heatmap PNG over the user's own image in the browser; opacity is a CSS change | one round trip (~90 ms) gives result and heatmap; the slider needs no extra requests. Both images share the aspect ratio (EXIF orientation is applied on both sides) |
+| D33 | 2026-10-16 | The footer links to the dataset page instead of naming the training data | the served model can be the prototype or the ISIC model; the UI must not state something about the model that may be untrue |
 
 ---
 

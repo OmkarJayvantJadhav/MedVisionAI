@@ -1,0 +1,636 @@
+{
+  "components": {
+    "schemas": {
+      "Body_explain_api_v1_explain_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "JPEG, PNG or WebP image",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_explain_api_v1_explain_post",
+        "type": "object"
+      },
+      "Body_predict_api_v1_predict_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "JPEG, PNG or WebP image",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_predict_api_v1_predict_post",
+        "type": "object"
+      },
+      "ClassProbability": {
+        "properties": {
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "probability": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Probability",
+            "type": "number"
+          }
+        },
+        "required": [
+          "class_name",
+          "probability"
+        ],
+        "title": "ClassProbability",
+        "type": "object"
+      },
+      "ExplanationResponse": {
+        "properties": {
+          "calibrated": {
+            "description": "Whether probabilities are temperature-calibrated",
+            "title": "Calibrated",
+            "type": "boolean"
+          },
+          "confidence": {
+            "description": "Probability of the top class",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "explained_class": {
+            "title": "Explained Class",
+            "type": "string"
+          },
+          "heatmap_png": {
+            "description": "Base64-encoded PNG of the coloured heatmap",
+            "title": "Heatmap Png",
+            "type": "string"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "malignant_probability": {
+            "description": "Summed probability of malignant and pre-malignant classes",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Malignant Probability",
+            "type": "number"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "overlay_png": {
+            "description": "Base64-encoded PNG of the heatmap over the image",
+            "title": "Overlay Png",
+            "type": "string"
+          },
+          "predicted_class": {
+            "title": "Predicted Class",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "risk_flag": {
+            "$ref": "#/components/schemas/RiskFlag"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "description": "ok, low_confidence or rejected"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "thresholds_fitted": {
+            "description": "Whether decision thresholds were fitted on data",
+            "title": "Thresholds Fitted",
+            "type": "boolean"
+          },
+          "top_k": {
+            "items": {
+              "$ref": "#/components/schemas/ClassProbability"
+            },
+            "title": "Top K",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "predicted_class",
+          "confidence",
+          "top_k",
+          "risk_flag",
+          "malignant_probability",
+          "reasons",
+          "model_version",
+          "calibrated",
+          "thresholds_fitted",
+          "summary",
+          "latency_ms",
+          "explained_class",
+          "heatmap_png",
+          "overlay_png"
+        ],
+        "title": "ExplanationResponse",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "MetaResponse": {
+        "properties": {
+          "backbone": {
+            "title": "Backbone",
+            "type": "string"
+          },
+          "calibrated": {
+            "title": "Calibrated",
+            "type": "boolean"
+          },
+          "class_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Class Names",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "image_size": {
+            "title": "Image Size",
+            "type": "integer"
+          },
+          "malignant_classes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Malignant Classes",
+            "type": "array"
+          },
+          "max_upload_mb": {
+            "title": "Max Upload Mb",
+            "type": "number"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/ThresholdsOut"
+          }
+        },
+        "required": [
+          "model_version",
+          "backbone",
+          "class_names",
+          "malignant_classes",
+          "image_size",
+          "calibrated",
+          "thresholds",
+          "max_upload_mb"
+        ],
+        "title": "MetaResponse",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "calibrated": {
+            "description": "Whether probabilities are temperature-calibrated",
+            "title": "Calibrated",
+            "type": "boolean"
+          },
+          "confidence": {
+            "description": "Probability of the top class",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "malignant_probability": {
+            "description": "Summed probability of malignant and pre-malignant classes",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Malignant Probability",
+            "type": "number"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "predicted_class": {
+            "title": "Predicted Class",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "risk_flag": {
+            "$ref": "#/components/schemas/RiskFlag"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "description": "ok, low_confidence or rejected"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "thresholds_fitted": {
+            "description": "Whether decision thresholds were fitted on data",
+            "title": "Thresholds Fitted",
+            "type": "boolean"
+          },
+          "top_k": {
+            "items": {
+              "$ref": "#/components/schemas/ClassProbability"
+            },
+            "title": "Top K",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "predicted_class",
+          "confidence",
+          "top_k",
+          "risk_flag",
+          "malignant_probability",
+          "reasons",
+          "model_version",
+          "calibrated",
+          "thresholds_fitted",
+          "summary",
+          "latency_ms"
+        ],
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "ReadyResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ready"
+        ],
+        "title": "ReadyResponse",
+        "type": "object"
+      },
+      "Reason": {
+        "enum": [
+          "too_dark",
+          "too_bright",
+          "too_blurry",
+          "out_of_distribution",
+          "low_confidence",
+          "malignant_probability_above_threshold"
+        ],
+        "title": "Reason",
+        "type": "string"
+      },
+      "RiskFlag": {
+        "enum": [
+          "malignant_suspected",
+          "benign",
+          "uncertain"
+        ],
+        "title": "RiskFlag",
+        "type": "string"
+      },
+      "Status": {
+        "enum": [
+          "ok",
+          "low_confidence",
+          "rejected"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "ThresholdsOut": {
+        "properties": {
+          "fitted": {
+            "title": "Fitted",
+            "type": "boolean"
+          },
+          "low_confidence": {
+            "title": "Low Confidence",
+            "type": "number"
+          },
+          "malignant": {
+            "title": "Malignant",
+            "type": "number"
+          },
+          "ood_energy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ood Energy"
+          }
+        },
+        "required": [
+          "low_confidence",
+          "malignant",
+          "ood_energy",
+          "fitted"
+        ],
+        "title": "ThresholdsOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Not a medical device. Predictions are not diagnoses.",
+    "summary": "Explainable skin-lesion classification for education and screening research.",
+    "title": "MedVision AI",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/explain": {
+      "post": {
+        "description": "Classify an image and return a Grad-CAM heatmap and overlay.",
+        "operationId": "explain_api_v1_explain_post",
+        "parameters": [
+          {
+            "description": "Class to explain (default: top prediction)",
+            "in": "query",
+            "name": "class_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Class to explain (default: top prediction)",
+              "title": "Class Name"
+            }
+          },
+          {
+            "description": "Heatmap opacity in the overlay",
+            "in": "query",
+            "name": "alpha",
+            "required": false,
+            "schema": {
+              "default": 0.4,
+              "description": "Heatmap opacity in the overlay",
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Alpha",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_explain_api_v1_explain_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplanationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid image"
+          },
+          "413": {
+            "description": "Image too large"
+          },
+          "415": {
+            "description": "Unsupported image type"
+          },
+          "422": {
+            "description": "Invalid request"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Model not loaded"
+          }
+        },
+        "summary": "Explain",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "description": "Liveness: the process is up.",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "description": "Model version, classes, thresholds and upload limits.",
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "description": "Model not loaded"
+          }
+        },
+        "summary": "Meta",
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/api/v1/predict": {
+      "post": {
+        "description": "Classify a skin-lesion image.",
+        "operationId": "predict_api_v1_predict_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_predict_api_v1_predict_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid image"
+          },
+          "413": {
+            "description": "Image too large"
+          },
+          "415": {
+            "description": "Unsupported image type"
+          },
+          "422": {
+            "description": "Invalid request"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Model not loaded"
+          }
+        },
+        "summary": "Predict",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "description": "Readiness: the model is loaded and its checksums were verified.",
+        "operationId": "ready_api_v1_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "service"
+        ]
+      }
+    }
+  }
+}
