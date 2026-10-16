@@ -1,6 +1,6 @@
 PACKAGES := ml backend
 
-.PHONY: help setup lint format typecheck test check clean download-model predict
+.PHONY: help setup lint format typecheck test check clean download-model predict run
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -25,6 +25,9 @@ check: lint typecheck test ## Run every check CI runs
 
 download-model: ## Fetch and verify model artifacts: make download-model BASE_URL=<release folder URL>
 	cd backend && uv run python -m app.inference.download --base-url "$(BASE_URL)" --dest ../models
+
+run: ## Start the API on http://localhost:8000 (docs at /docs) using ../models
+	cd backend && MEDVISION_MODEL_DIR=$(CURDIR)/models uv run uvicorn app.main:create_app --factory --reload --port 8000
 
 predict: ## Classify images with the served model: make predict IMAGES="a.jpg b.png"
 	cd backend && uv run python -m app.inference.cli $(abspath $(IMAGES)) --model-dir ../models
