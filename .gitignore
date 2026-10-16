@@ -24,6 +24,7 @@ frontend/dist/
 # Data, models and generated outputs (never committed)
 /data/
 /ml/data/
+/ml/ISIC_2019_*
 /models/*
 !/models/.gitkeep
 *.keras

@@ -14,6 +14,16 @@ from medvision_ml.config import ConfigError, ProjectConfig, load_config
 LOGGER = logging.getLogger("medvision_ml")
 
 
+def _groups_for(explicit: Path | None, folder: Path) -> dict[str, str] | None:
+    from medvision_ml.data.groups import read_groups
+    from medvision_ml.data.isic2019 import GROUPS_FILE
+
+    path = explicit or folder / GROUPS_FILE
+    if explicit is None and not path.is_file():
+        return None
+    return read_groups(path)
+
+
 def _check_leakage(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.data.images import scan_split_dataset
     from medvision_ml.data.leakage import check_leakage
@@ -24,7 +34,8 @@ def _check_leakage(args: argparse.Namespace, config: ProjectConfig) -> int:
         if args.max_distance is not None
         else config.data.near_duplicate_max_distance
     )
-    report = check_leakage(scan_split_dataset(data_dir), max_distance)
+    groups = _groups_for(args.groups, data_dir)
+    report = check_leakage(scan_split_dataset(data_dir), max_distance, groups)
     output = args.output or config.output_dir / "leakage_report.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
@@ -37,7 +48,9 @@ def _check_leakage(args: argparse.Namespace, config: ProjectConfig) -> int:
 
 
 def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.data.groups import group_keys, merge_groups, write_groups
     from medvision_ml.data.images import scan_class_dataset, scan_split_dataset
+    from medvision_ml.data.isic2019 import GROUPS_FILE
     from medvision_ml.data.leakage import check_leakage, fingerprint_all, group_duplicates
     from medvision_ml.data.splitting import assign_splits, materialise_splits
 
@@ -45,16 +58,35 @@ def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
     fingerprints, failed = fingerprint_all(records)
     if failed:
         print(f"Skipping {len(failed)} unreadable images.", file=sys.stderr)
-    groups = group_duplicates(fingerprints, config.data.near_duplicate_max_distance)
-    assignments = assign_splits(
-        [f.record for f in fingerprints], groups, config.data.split_ratios, config.seed
+    readable = [f.record for f in fingerprints]
+    known = _groups_for(args.groups, args.source) or {}
+    groups = merge_groups(
+        group_duplicates(fingerprints, config.data.near_duplicate_max_distance),
+        group_keys(readable, known),
     )
+    assignments = assign_splits(readable, groups, config.data.split_ratios, config.seed)
     destination = args.dest or config.data_dir
     counts = materialise_splits(assignments, destination, overwrite=args.overwrite)
+    if known:
+        names = {r.path.name for r in readable}
+        write_groups({k: v for k, v in known.items() if k in names}, destination / GROUPS_FILE)
     print(json.dumps(counts, indent=2))
-    report = check_leakage(scan_split_dataset(destination), config.data.near_duplicate_max_distance)
+    report = check_leakage(
+        scan_split_dataset(destination), config.data.near_duplicate_max_distance, known or None
+    )
     print(json.dumps(report.summary(), indent=2))
     return 1 if report.has_leakage else 0
+
+
+def _prepare_isic2019(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.data.isic2019 import prepare_isic2019
+
+    counts = prepare_isic2019(
+        args.images, args.ground_truth, args.metadata, args.dest, link=not args.copy
+    )
+    print(json.dumps(counts, indent=2))
+    print(f"Next: medvision-ml split --source {args.dest}")
+    return 0
 
 
 def _train(args: argparse.Namespace, config: ProjectConfig) -> int:
@@ -144,6 +176,9 @@ def build_parser() -> argparse.ArgumentParser:
     leak.add_argument("--data-dir", type=Path, default=None)
     leak.add_argument("--max-distance", type=int, default=None, help="dHash distance threshold")
     leak.add_argument("--output", type=Path, default=None, help="JSON report path")
+    leak.add_argument(
+        "--groups", type=Path, default=None, help="image,group CSV (default: <data-dir>/groups.csv)"
+    )
     leak.set_defaults(handler=_check_leakage)
 
     split = commands.add_parser("split", help="build duplicate-aware train/validation/test splits")
@@ -154,7 +189,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--dest", type=Path, default=None, help="output root (default: paths.data_dir)"
     )
     split.add_argument("--overwrite", action="store_true")
+    split.add_argument(
+        "--groups", type=Path, default=None, help="image,group CSV (default: <source>/groups.csv)"
+    )
     split.set_defaults(handler=_split)
+
+    isic = commands.add_parser("prepare-isic2019", help="lay out the ISIC 2019 training release")
+    isic.add_argument("--images", type=Path, required=True, help="ISIC_2019_Training_Input folder")
+    isic.add_argument("--ground-truth", type=Path, required=True)
+    isic.add_argument("--metadata", type=Path, required=True)
+    isic.add_argument("--dest", type=Path, required=True)
+    isic.add_argument("--copy", action="store_true", help="copy files instead of hard-linking")
+    isic.set_defaults(handler=_prepare_isic2019)
 
     train = commands.add_parser("train", help="train a classifier")
     train.add_argument("--run-name", default=None)
