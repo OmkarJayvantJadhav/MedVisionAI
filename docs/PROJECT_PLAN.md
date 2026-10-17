@@ -445,11 +445,12 @@ and summarized in an ablation table.
   These are goals, not claims. Report what is actually achieved.
 
 ### Phase 10 — Presentation
-- [ ] README as a case study: demo link + GIF, problem, architecture
-      diagram, results table, safety design, trade-offs (ONNX vs INT8,
-      CAM shortcut, calibration), limitations, one-command run.
-- [ ] `docs/architecture.md`; a short write-up of the three most interesting
-      engineering decisions.
+- [x] README as a case study: demo link and screenshots (light, dark, phone),
+      problem, architecture and pipeline diagrams, results, safety design,
+      engineering trade-offs, limitations, one-command run.
+- [x] `docs/architecture.md`; a short write-up of the three most interesting
+      engineering decisions (CAM in NumPy, silent-miss gates, leakage-free
+      splits).
 
 ---
 

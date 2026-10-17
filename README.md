@@ -1,107 +1,427 @@
+<div align="center">
+
 # MedVision AI
 
-Explainable skin-lesion classification: upload a skin photo and get the most
-likely conditions with calibrated confidence, a heatmap showing what the model
-focused on, and a clear safety status.
+**Explainable, safety-gated skin-lesion screening that runs on a CPU.**
 
-**Live demo: [medvision-ai-hguo.onrender.com](https://medvision-ai-hguo.onrender.com)**
-(free hosting: the first request after 15 idle minutes takes about a minute
-while the service wakes up)
+Upload a dermoscopy photo of a mole or spot. Within seconds you get the closest
+matches with calibrated confidence, a heatmap of what the model looked at, and a
+clear safety verdict. When the photo is unusable, the tool says so instead of guessing.
 
-> Educational and research use only. Not a medical diagnosis; consult a
-> dermatologist about any skin concern.
+[![Live demo](https://img.shields.io/badge/Live_demo-medvision--ai-0b6e75?style=for-the-badge)](https://medvision-ai-hguo.onrender.com)
+[![Model card](https://img.shields.io/badge/Model_card-read-12784a?style=for-the-badge)](docs/model_card.md)
+[![Architecture](https://img.shields.io/badge/Architecture-docs-4a5a68?style=for-the-badge)](docs/architecture.md)
 
-See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the architecture,
-roadmap, and design decisions.
+[![CI](https://github.com/OmkarJayvantJadhav/MedVisionAI/actions/workflows/ci.yml/badge.svg)](https://github.com/OmkarJayvantJadhav/MedVisionAI/actions/workflows/ci.yml)
+[![Live site](https://github.com/OmkarJayvantJadhav/MedVisionAI/actions/workflows/live.yml/badge.svg)](https://github.com/OmkarJayvantJadhav/MedVisionAI/actions/workflows/live.yml)
+![Python](https://img.shields.io/badge/Python-3.11-3776ab?logo=python&logoColor=white)
+![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-CPU-005ced?logo=onnx&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-training_only-ff6f00?logo=tensorflow&logoColor=white)
+![Model licence](https://img.shields.io/badge/Model-CC_BY--NC_4.0-lightgrey)
 
-## Planned features
+<br>
 
-- 8-class classifier trained on the ISIC 2019 dermoscopy dataset (Actinic
-  Keratosis, Basal Cell Carcinoma, Benign Keratosis, Dermatofibroma, Melanocytic
-  Nevus, Melanoma, Squamous Cell Carcinoma, Vascular Lesion) built on
-  EfficientNetB0 transfer learning, with lesion-grouped splits to prevent leakage
-- Grad-CAM visual explanations
-- Calibrated probabilities, out-of-distribution rejection, and a
-  malignancy-risk flag
-- FastAPI backend served with ONNX Runtime and a React frontend (drag and
-  drop or camera upload, risk badges, heatmap with adjustable opacity)
-- One-command Docker run, CI, and a public demo
+<img src="docs/assets/screenshot-result-light.jpg" alt="MedVision AI result for a melanoma sample: malignancy warning, top-3 matches, combined malignancy gauge and heatmap" width="860">
 
-## Model
+<sub>The live demo analysing an ISIC 2019 test image. A malignancy warning leads, followed by
+calibrated matches, the combined cancer-risk gauge and the heatmap.</sub>
 
-Release [`model-v2.2.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.2.0)
-(EfficientNetB0, ISIC 2019, CC BY-NC 4.0). Results on the held-out test split
-(2,527 images, lesion-grouped, no leakage), reproducible with
-`medvision-ml evaluate`, `medvision-ml calibrate` and `medvision-ml fit-ood`:
+</div>
+
+> [!IMPORTANT]
+> **Not a medical device and not a diagnosis.** MedVision AI is an education and
+> screening-research project. Anyone worried about a skin lesion should see a dermatologist.
+
+> [!NOTE]
+> The demo runs on a free hosting tier. The first request after 15 idle minutes takes
+> about a minute while the server wakes up; after that, an analysis takes one to three seconds
+> on the shared free CPU (about 30 ms on a normal machine).
+
+---
+
+## Contents
+
+- [Why this project](#why-this-project)
+- [What it does](#what-it-does)
+- [Screenshots](#screenshots)
+- [How it works](#how-it-works)
+- [Safety by design](#safety-by-design)
+- [Results](#results)
+- [Engineering highlights](#engineering-highlights)
+- [Tech stack](#tech-stack)
+- [Quick start](#quick-start)
+- [API](#api)
+- [Training and evaluation](#training-and-evaluation)
+- [Repository layout](#repository-layout)
+- [Quality gates](#quality-gates)
+- [Limitations](#limitations)
+- [Documentation](#documentation)
+- [Acknowledgements and licence](#acknowledgements-and-licence)
+
+---
+
+## Why this project
+
+Most skin-lesion classifiers published as demos stop at a notebook accuracy number. They
+answer every image confidently, including photos of cats. They hide how often they miss
+cancer, and they say nothing about who they fail.
+
+MedVision AI treats the model as one part of a product that has to be **honest**:
+
+- It **flags a possible malignancy** from the combined probability of every cancer-related
+  class, tuned to catch 90% of malignant cases, instead of trusting the top answer.
+- It **rejects what it cannot judge**: photos that are not dermoscopy images, and grainy,
+  dark or blurry ones.
+- It **shows where it looked** with a class activation heatmap.
+- It **reports its weaknesses**: robustness to image damage, and results by sex, age and
+  body site, all regenerated by one command.
+
+## What it does
+
+| | |
+|---|---|
+| **Classifies** | 8 conditions from the ISIC 2019 dataset: actinic keratosis, basal cell carcinoma, benign keratosis, dermatofibroma, melanocytic nevus, melanoma, squamous cell carcinoma, vascular lesion |
+| **Calibrates** | Temperature scaling makes a "70%" mean right about 70% of the time (calibration error 0.026) |
+| **Flags risk** | A malignancy warning when the four cancer-related classes add up past a fitted threshold, even if a benign class ranks first |
+| **Rejects** | Non-dermoscopy photos (out-of-distribution check), grainy photos (noise check), and dark, washed-out or blurry photos (quality checks) |
+| **Explains** | A heatmap overlay with an opacity slider, computed from the same forward pass |
+| **Respects privacy** | Images are processed in memory and never stored or logged; no accounts, no tracking, self-hosted fonts |
+| **Works anywhere** | Drag and drop, paste, file picker or phone camera; light and dark themes; keyboard accessible |
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="62%" valign="top">
+      <img src="docs/assets/screenshot-result-dark.jpg" alt="Dark theme: basal cell carcinoma sample with a malignancy warning and heatmap">
+      <p align="center"><sub><b>Dark theme.</b> A basal cell carcinoma sample: the risk gauge shows the fitted threshold marker.</sub></p>
+    </td>
+    <td width="38%" valign="top">
+      <img src="docs/assets/screenshot-result-phone.jpg" alt="Phone layout: benign nevus sample with no malignancy flag">
+      <p align="center"><sub><b>Phone layout.</b> A benign mole: no flag, with advice to see a doctor if it changes.</sub></p>
+    </td>
+  </tr>
+</table>
+
+## How it works
+
+```mermaid
+flowchart LR
+    U(["Photo upload"]) --> D["Decode and validate<br/>type, size, orientation"]
+    D --> R["Resize to 224 px<br/>same as training"]
+    R --> Q{"Quality checks<br/>brightness, sharpness, noise"}
+    Q -- fail --> X(["Rejected:<br/>what to fix"])
+    Q -- pass --> M["EfficientNet-B0<br/>ONNX Runtime on CPU"]
+    M --> F[("Feature maps<br/>7 x 7 x 1280")]
+    F --> O{"Out-of-distribution<br/>Mahalanobis distance"}
+    O -- far --> Y(["Rejected:<br/>not a dermoscopy image"])
+    O -- near --> L["Logits and<br/>temperature scaling"]
+    L --> S{"Safety rules"}
+    S --> V(["Verdict, top 3,<br/>risk gauge"])
+    F --> C["Class activation map<br/>NumPy, no TensorFlow"]
+    C --> H(["Heatmap overlay"])
+```
+
+1. **Validate.** The upload is decoded in memory, never written to disk. Only real
+   JPEG, PNG or WebP images up to 8 MB and 4096 px pass.
+2. **Preprocess.** A NumPy re-implementation of TensorFlow's bilinear resize, so the
+   served model sees exactly what it saw in training (covered by a parity test).
+3. **Gate.** Brightness, sharpness and a sensor-noise estimate reject unusable photos.
+4. **Classify.** One ONNX Runtime call returns the feature maps. The logits, the
+   out-of-distribution distance and the heatmap are all derived from that one result.
+5. **Decide.** Calibrated probabilities pass through the safety rules below. The response
+   always carries the disclaimer and a plain-language summary.
+
+Full component and data-flow details: [docs/architecture.md](docs/architecture.md).
+
+## Safety by design
+
+Every threshold is **fitted on the validation split** and **reported on the untouched test
+split**. All of them ship inside the versioned model release (`model_meta.json`).
+
+| Rule | How it is set | Effect on the 2,527 test images |
+|---|---|---|
+| **Malignancy flag**: melanoma + BCC + SCC + actinic keratosis probability ≥ threshold | Catch 90% of malignant validation images | **90.4%** of malignant cases flagged, precision 68.1% |
+| **Low confidence**: top probability below threshold | Confident answers must be ≥ 85% accurate on validation | 59% answered confidently, 86.9% of those correct |
+| **Out-of-distribution**: Mahalanobis distance of the image features from the training images | 99% of validation images pass | 98.9% of lesions pass; **99.6%** of 497 everyday photos rejected |
+| **Noise check**: sensor noise measured in the image's smoothest patches | 99% of validation images pass | Cancers missed silently on noisy photos: **49% → 0%** |
+| **Quality checks**: brightness and sharpness | Fixed, conservative bounds | Black, washed-out and featureless images rejected |
+
+The verdict order is deliberate. A malignancy warning outranks "unsure", which outranks
+"no flag", so a warning is never hidden behind uncertainty. A rejected photo gets an
+explanation of *why* ("too grainy", "not a dermoscopy image") instead of a guess.
+
+## Results
+
+Model release [`model-v2.2.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.2.0):
+EfficientNet-B0 trained on ISIC 2019, evaluated on a **lesion-grouped, leakage-checked** test
+split of 2,527 images. Every number here is regenerated by `make evaluate`.
+
+<table>
+<tr><td valign="top">
+
+**Overall**
 
 | Metric | Value |
 |---|---|
 | Accuracy (top-1) | 0.708 |
 | Macro F1 | 0.508 |
-| Melanoma recall (top-1) | 0.435 |
-| Malignant-group recall at the fitted threshold | 0.904 (precision 0.681) |
+| ROC-AUC (one-vs-rest) | 0.935 |
+| Malignant-group ROC-AUC | 0.916 |
 | Calibration error (ECE) | 0.026 |
-| Test lesions accepted by the out-of-distribution and noise checks | 98.4% |
-| Everyday photos rejected (497 Open Images photos) | 99.6% |
+| Malignant recall at the flag | **0.904** |
 
-Top-1 melanoma recall is still low, so the app flags a possible malignancy
-from the summed probability of all malignant classes, with a threshold fitted
-to catch 90% of malignant validation images. Photos that do not resemble the
-dermoscopy training images are rejected instead of classified.
+</td><td valign="top">
 
-The [model card](docs/model_card.md) has per-class results, calibration plots,
-robustness to blur, noise, compression and rotation, results by sex, age and
-body site, and the known limitations. `make evaluate` regenerates all of it.
+**Per class (recall)**
 
-```bash
-make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.2.0
-```
+| Class | Recall | Test images |
+|---|---|---|
+| Melanocytic nevus | 0.90 | 1,286 |
+| Benign keratosis | 0.68 | 261 |
+| Basal cell carcinoma | 0.62 | 331 |
+| Vascular lesion | 0.52 | 25 |
+| Melanoma | 0.43 | 451 |
+| Actinic keratosis | 0.30 | 86 |
+| Dermatofibroma | 0.29 | 24 |
+| Squamous cell carcinoma | 0.17 | 63 |
 
-## Train the model
+</td></tr>
+</table>
 
-Training runs through the `medvision-ml` command line: prepare and split
-ISIC 2019, check the splits for leakage, train, evaluate on the held-out test
-set and export the serving files. See [`docs/DATASETS.md`](docs/DATASETS.md)
-for the steps, the data and its licence.
+**Robustness.** The share of malignant images missed *without any warning* under image
+damage, with all checks active:
 
-[`notebooks/train_kaggle.ipynb`](notebooks/train_kaggle.ipynb) runs every step
-on a free Kaggle GPU in the background (*Save & Run All*), so no browser tab
-has to stay open.
+| Clean | Mild blur | Phone-like | Darker | JPEG q30 | Noise σ8 | Noise σ20 | JPEG q10 |
+|---|---|---|---|---|---|---|---|
+| 9.3% | 7.7% | 9.9% | 13.6% | 12.1% | **0%** | **0%** | 25.1% |
 
-## Run with Docker
+**By patient group.** Malignancy-flag recall: men 0.95, women 0.84, ages 30–49 0.76,
+ages 70+ 0.95, lower limbs 0.82. Skin type is not recorded in ISIC 2019, so performance
+on darker skin is **unknown**. The [model card](docs/model_card.md) states this plainly.
 
-```bash
-docker compose up --build    # then open http://localhost:7860
-```
+<details>
+<summary><b>Calibration and confusion matrix</b></summary>
+<br>
 
-The image bundles the website, the API and the checksum-verified model. See
-[`docs/deploy.md`](docs/deploy.md) for the free Render deployment.
-
-## Development
-
-Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. Python 3.11 is
-installed by uv if missing.
-
-```bash
-make setup   # install dependencies for ml/ and backend/ and the git hooks
-make check   # lint, type check and test the Python packages (same as CI)
-make frontend-setup frontend-check   # install, lint, test and build the frontend
-make run            # API on http://localhost:8000 (needs model files in models/)
-make frontend-dev   # UI on http://localhost:5173, proxied to the API
-make help    # list all targets
-```
-
-| Folder | Contents |
+| Before temperature scaling | After |
 |---|---|
-| `ml/` | training, evaluation, calibration and ONNX export (TensorFlow) |
-| `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
-| `frontend/` | React (JavaScript) + Vite + Tailwind web app |
-| `models/` | downloaded model artifacts (not committed) |
-| `notebooks/` | Kaggle notebook that runs the full training pipeline on a free GPU |
-| `docs/` | project plan, dataset sources and licences, design documents |
+| <img src="docs/assets/reliability_test_before.png" width="380" alt="Reliability diagram before calibration"> | <img src="docs/assets/reliability_test_after.png" width="380" alt="Reliability diagram after calibration"> |
 
-## Disclaimer
+<p align="center"><img src="docs/assets/confusion_matrix_test.png" width="640" alt="Test-set confusion matrix"></p>
 
-This project is for education and screening research only. It is **not** a
-medical device and does not provide a diagnosis. Always consult a qualified
-dermatologist.
+</details>
+
+## Engineering highlights
+
+<details open>
+<summary><b>Grad-CAM without TensorFlow, from the same forward pass</b></summary>
+
+For a `pooling → dense` head, Grad-CAM's channel weights are exactly the dense layer's
+weights, so the heatmap reduces to a weighted sum of the last feature maps. The ONNX
+export outputs those feature maps, and the backend computes the heatmap in NumPy. That
+removes TensorFlow from serving and makes an explanation nearly free. A parity test
+compares the result with TensorFlow Grad-CAM (cosine similarity ≥ 0.99).
+</details>
+
+<details open>
+<summary><b>Rejection gates measured by the failure that matters</b></summary>
+
+A rejected photo is a safe outcome; a missed cancer with no warning is not. The robustness
+suite therefore counts **silent misses**. That metric showed noisy photos slipping past the
+out-of-distribution check and losing up to half of malignant cases. A noise estimate taken
+in each image's smoothest patches, so hair and texture don't count, closed the gap
+completely at a cost of 0.5% of clean images.
+</details>
+
+<details open>
+<summary><b>Leakage-free splits, and the bug that almost hid it</b></summary>
+
+16,459 of the 25,331 ISIC images belong to lesions photographed several times, so splits
+are grouped by lesion and by near-duplicate image hash. The first hash mostly encoded the
+dark circular border common to dermoscopy photos. It chained 3,676 unrelated images into
+one "duplicate" group and skewed the test set. Hashing the centre of the image fixed it,
+and `split` now refuses any group larger than 20 images.
+</details>
+
+<details>
+<summary><b>More decisions worth a look</b></summary>
+
+- **Float32 rebuild bug.** A mixed-precision model reloaded through `set_weights` silently
+  lost its input normalisation (validation 0.695 → 0.646). Loading through Keras's own
+  weight loader fixed it, and a regression test guards it.
+- **Out-of-distribution score.** Energy and max-softmax scores were tried first, but only
+  rejected 18% of everyday photos at 99% lesion acceptance. Mahalanobis distance on the
+  pooled features reached AUROC 0.9998.
+- **Free hosting.** Hugging Face Docker Spaces now need a paid plan, so the demo moved to
+  Render's free tier from a Blueprint. A daily workflow smoke-tests the public URL.
+- **Typed contract without TypeScript.** The frontend is plain JavaScript by choice. The
+  committed OpenAPI schema keeps it honest: frontend tests validate their mocks against it,
+  and a backend test fails if it goes stale.
+
+Every decision, with its reasoning, is in the [decision log](docs/PROJECT_PLAN.md#12-decision-log).
+</details>
+
+## Tech stack
+
+| Layer | Choices |
+|---|---|
+| **Model** | EfficientNet-B0 (ImageNet weights), TensorFlow / Keras 3, two-stage fine-tuning, square-root class weights, mixed precision on a free Kaggle T4 GPU |
+| **Export** | tf2onnx (opset 17) with two outputs, `probabilities` and `feature_maps`; dense-head weights, gate statistics and SHA-256 checksums shipped with each release |
+| **Serving** | FastAPI, Pydantic v2, ONNX Runtime (CPU) and NumPy, with **no TensorFlow**; structured JSON logs, per-client rate limit, restricted CORS |
+| **Frontend** | React 19 (JavaScript), Vite, Tailwind CSS v4, self-hosted fonts, Vitest |
+| **Ops** | Multi-stage Docker image (non-root, health check, model verified at build), GitHub Actions CI, Render free tier, daily live smoke test |
+| **Tooling** | uv with lockfiles, ruff, mypy (strict), ESLint, Prettier, pre-commit, Make |
+
+## Quick start
+
+**Run the whole app** (website, API and the checksum-verified model) with Docker:
+
+```bash
+git clone https://github.com/OmkarJayvantJadhav/MedVisionAI.git
+cd MedVisionAI
+docker compose up --build        # open http://localhost:7860
+```
+
+**Develop locally** with [uv](https://docs.astral.sh/uv/), Node.js and GNU Make:
+
+```bash
+make setup                       # Python dependencies for ml/ and backend/, git hooks
+make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.2.0
+make run                         # API on http://localhost:8000 (docs at /docs)
+make frontend-setup frontend-dev # UI on http://localhost:5173, proxied to the API
+make check frontend-check        # everything CI runs
+make help                        # every target
+```
+
+## API
+
+Interactive documentation is served at `/docs`. All endpoints live under `/api/v1`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Liveness |
+| `GET` | `/ready` | Model loaded and checksum-verified |
+| `GET` | `/meta` | Model version, classes, fitted thresholds, disclaimer |
+| `POST` | `/predict` | Prediction for one image (`multipart/form-data`, field `file`) |
+| `POST` | `/explain` | Prediction plus heatmap and overlay PNGs |
+
+```bash
+curl -s -F file=@frontend/public/samples/melanoma.jpg \
+  https://medvision-ai-hguo.onrender.com/api/v1/predict
+```
+
+```jsonc
+{
+  "status": "ok",                       // ok | low_confidence | rejected
+  "predicted_class": "Melanoma",
+  "confidence": 0.91,
+  "top_k": [{ "class_name": "Melanoma", "probability": 0.91 }, "..."],
+  "risk_flag": "malignant_suspected",   // malignant_suspected | benign | uncertain
+  "malignant_probability": 0.91,
+  "reasons": ["malignant_probability_above_threshold"],
+  "model_version": "skin-effb0-v2.2.0",
+  "calibrated": true,
+  "summary": "…plain-language text…",
+  "disclaimer": "Not a medical diagnosis. …"
+}
+```
+
+Full reference, error codes and configuration: [docs/api.md](docs/api.md).
+
+## Training and evaluation
+
+Everything runs through one tested command-line tool, `medvision-ml`. The notebook only
+calls it.
+
+```mermaid
+flowchart LR
+    A["prepare-isic2019"] --> B["split<br/>lesion and duplicate groups"]
+    B --> C["check-leakage"]
+    C --> D["train"]
+    D --> E["evaluate"]
+    E --> F["calibrate"]
+    F --> G["fit-ood<br/>and noise threshold"]
+    G --> H["export<br/>ONNX, weights, gate stats"]
+    H --> I[("GitHub release<br/>model-vX.Y.Z")]
+    G --> J["robustness"]
+    G --> K["subgroups"]
+```
+
+- **Train for free:** [`notebooks/train_kaggle.ipynb`](notebooks/train_kaggle.ipynb) runs
+  the full pipeline on a Kaggle GPU in the background (*Save & Run All*). No tab has to stay open.
+- **Reproduce every reported number:**
+  `make evaluate MODEL=ml/artifacts/<run>/model.keras METADATA=<ISIC metadata CSV>`.
+- **Data, licences and steps:** [docs/DATASETS.md](docs/DATASETS.md).
+
+## Repository layout
+
+```text
+MedVisionAI/
+├── ml/                 TensorFlow training, evaluation, calibration, gates, ONNX export
+│   ├── src/medvision_ml/   data · models · training · evaluation · calibration · export
+│   └── tests/              unit, pipeline and TensorFlow-vs-serving parity tests
+├── backend/            FastAPI service on ONNX Runtime and NumPy (no TensorFlow)
+│   └── app/                api · core · inference · services · schemas
+├── frontend/           React + Vite + Tailwind web app, served by the backend in production
+├── notebooks/          Kaggle notebook that runs the whole training pipeline
+├── docs/               model card, architecture, API, datasets, deployment, project plan
+├── Dockerfile          one image: built frontend, API and verified model
+├── render.yaml         free Render deployment (Blueprint)
+└── Makefile            setup · check · run · evaluate · docker · smoke
+```
+
+## Quality gates
+
+| Check | Where |
+|---|---|
+| ruff, mypy (strict), ESLint, Prettier | CI on every pull request |
+| **268 automated tests**: 132 ml, 102 backend, 34 frontend; backend coverage 98% | CI on every pull request |
+| Parity: ONNX vs Keras, NumPy heatmap vs TensorFlow Grad-CAM, served resize, out-of-distribution and noise scores | `ml` test suite |
+| Docker build, then a container smoke test: ready, home page, predict, explain, non-skin and grainy images rejected, p95 latency | CI on every pull request |
+| The same smoke test against the public URL | Daily and on demand ("Live site") |
+
+## Limitations
+
+- **Moderate accuracy.** Top-1 recall is low for melanoma (0.43) and squamous cell
+  carcinoma (0.17). That is why safety relies on the combined malignancy flag, which
+  flags about half of all images.
+- **Dermoscopy only.** Ordinary phone photos are rejected by design.
+- **Heavy JPEG compression** (quality 10) still causes silent misses (25%).
+- **Unequal recall** for women, ages 30–49 and the lower limbs; **unknown** performance
+  on darker skin.
+- One dataset, no external or prospective validation. See the
+  [model card](docs/model_card.md) for details.
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [Model card](docs/model_card.md) | Intended use, data, per-class results, decision rules, robustness, subgroups, limitations |
+| [Architecture](docs/architecture.md) | Components, request flow, model pipeline, key design decisions |
+| [API reference](docs/api.md) | Endpoints, response fields, error codes, configuration |
+| [Datasets](docs/DATASETS.md) | ISIC 2019, everyday-photo set, licences, attribution, training steps |
+| [Deployment](docs/deploy.md) | Free Render setup and the live smoke test |
+| [Project plan](docs/PROJECT_PLAN.md) | Goals, phases, conventions and the full decision log |
+
+## Acknowledgements and licence
+
+- **Training data:** the [ISIC 2019 Challenge](https://challenge.isic-archive.com/data/#2019)
+  dataset (CC BY-NC 4.0), drawing on HAM10000 (Tschandl et al., 2018), the ISIC 2017
+  challenge (Codella et al., 2017) and BCN20000 (Combalia et al., 2019). Full citations are
+  in [docs/DATASETS.md](docs/DATASETS.md).
+- **Everyday photos** for the out-of-distribution report: Open Images V4 validation set
+  (CC BY 2.0), downloaded with attribution by `medvision-ml fetch-non-skin`.
+- **Prototype:** this project grew out of an earlier prototype,
+  [Adiitya09/MedvisionAi](https://github.com/Adiitya09/MedvisionAi).
+- **Licences:** the model weights are released under **CC BY-NC 4.0**, because the training
+  data is non-commercial. A licence for the source code will be added once the original
+  contributors have agreed on one.
+
+<div align="center">
+<br>
+<sub>Built as an end-to-end study in honest, explainable medical machine learning.<br>
+<b>Not a medical device.</b> Always consult a qualified dermatologist.</sub>
+</div>
