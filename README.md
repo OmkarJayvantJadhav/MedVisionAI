@@ -19,14 +19,15 @@ clear safety verdict. When the photo is unusable, the tool says so instead of gu
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-training_only-ff6f00?logo=tensorflow&logoColor=white)
+[![Code licence: MIT](https://img.shields.io/badge/Code-MIT-0b6e75)](LICENSE)
 ![Model licence](https://img.shields.io/badge/Model-CC_BY--NC_4.0-lightgrey)
 
 <br>
 
-<img src="docs/assets/screenshot-result-light.jpg" alt="MedVision AI result for a melanoma sample: malignancy warning, top-3 matches, combined malignancy gauge and heatmap" width="860">
+<img src="docs/assets/demo.gif" alt="Demo: a melanoma sample is chosen, the photo is scanned, the result shows a malignancy warning with top matches, and the heatmap opacity is adjusted" width="860">
 
-<sub>The live demo analysing an ISIC 2019 test image. A malignancy warning leads, followed by
-calibrated matches, the combined cancer-risk gauge and the heatmap.</sub>
+<sub>Choose a photo, watch it being analysed, read the verdict, then explore the heatmap.
+The sample is an ISIC 2019 test image the model never saw in training.</sub>
 
 </div>
 
@@ -92,18 +93,28 @@ MedVision AI treats the model as one part of a product that has to be **honest**
 
 ## Screenshots
 
+<p align="center">
+  <img src="docs/assets/screenshot-home.jpg" alt="Home page: centred hero above one card with a drop zone and three sample images" width="860">
+  <br><sub><b>Start.</b> One card: drop, browse, paste or use the camera, or try a sample.</sub>
+</p>
+
 <table>
   <tr>
-    <td width="62%" valign="top">
-      <img src="docs/assets/screenshot-result-dark.jpg" alt="Dark theme: basal cell carcinoma sample with a malignancy warning and heatmap">
-      <p align="center"><sub><b>Dark theme.</b> A basal cell carcinoma sample: the risk gauge shows the fitted threshold marker.</sub></p>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-result-light.jpg" alt="Light theme: melanoma sample with a malignancy warning, top matches and heatmap">
+      <p align="center"><sub><b>Light.</b> A melanoma sample: the warning leads, and the heatmap sits on the photo.</sub></p>
     </td>
-    <td width="38%" valign="top">
-      <img src="docs/assets/screenshot-result-phone.jpg" alt="Phone layout: benign nevus sample with no malignancy flag">
-      <p align="center"><sub><b>Phone layout.</b> A benign mole: no flag, with advice to see a doctor if it changes.</sub></p>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-result-dark.jpg" alt="Dark theme: basal cell carcinoma sample with a malignancy warning and heatmap">
+      <p align="center"><sub><b>Dark.</b> A basal cell carcinoma sample: the gauge marks the fitted threshold.</sub></p>
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <img src="docs/assets/screenshot-result-phone.jpg" alt="Phone layout: benign nevus sample with no malignancy flag, verdict shown first" width="300">
+  <br><sub><b>Phone.</b> The verdict comes first: here a benign mole, with advice to see a doctor if it changes.</sub>
+</p>
 
 ## How it works
 
@@ -416,9 +427,9 @@ MedVisionAI/
   (CC BY 2.0), downloaded with attribution by `medvision-ml fetch-non-skin`.
 - **Prototype:** this project grew out of an earlier prototype,
   [Adiitya09/MedvisionAi](https://github.com/Adiitya09/MedvisionAi).
-- **Licences:** the model weights are released under **CC BY-NC 4.0**, because the training
-  data is non-commercial. A licence for the source code will be added once the original
-  contributors have agreed on one.
+- **Licences:** the source code is released under the [**MIT licence**](LICENSE). The model
+  weights and gate statistics are released under **CC BY-NC 4.0**, because the training data is
+  non-commercial.
 
 <div align="center">
 <br>
