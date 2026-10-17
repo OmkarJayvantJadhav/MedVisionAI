@@ -346,7 +346,10 @@ with green CI and an updated README section.
       diff ≤ 1e-3; JPEG ≤ 2.0 because of decoder differences, see D15).
 - [x] Checksum-verified downloader (`python -m app.inference.download`,
       `make download-model`).
-- [ ] Train on the ISIC 2019 splits with the `medvision-ml` CLI (D38), then
+- [x] Kaggle notebook (`notebooks/train_kaggle.ipynb`, D39) that downloads,
+      prepares, splits, leakage-checks, trains, evaluates and exports; dry-run
+      end to end on a 320-image ISIC 2019 subset.
+- [ ] Train on the ISIC 2019 splits on Kaggle (done by the owner), then
       publish release `model-v2.0.0` under CC BY-NC 4.0 from the exported
       files. The weights no longer derive from the prototype, so only the
       dataset licence applies to them.
@@ -531,6 +534,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D36 | 2026-10-17 | `load_model` rebuilds mixed-precision models with float32 layers (weights copied unchanged), so evaluation, Grad-CAM and export all compute in float32 | the first ISIC model was trained with `mixed_float16`; Keras then computed export reference probabilities in float16 and the ONNX parity check failed (3.5e-3 > 1e-4). Served ONNX runs in float32, so every offline number must too |
 | D37 | 2026-10-17 | Near-duplicates use a 256-bit difference hash of the central 60% of the image (threshold 16 bits); `split` stops if a near-duplicate group exceeds 20 images. Supersedes the hash in D13. The first ISIC model's test numbers are void | the 64-bit whole-frame hash mostly encoded the dark circular border many dermoscopy images share: at ≤ 4 bits it chained 3,676 unrelated images of all 8 classes into one "duplicate" group, which the splitter put wholly into training, leaving validation and test 71% nevus with half the expected melanomas. On ISIC 2019 the new hash's matches up to 18 bits were all copies of the same lesion photo (checked visually) and unrelated lesions start at 19; the largest group is now 3 images and every class is split 80/10/10 |
 | D38 | 2026-10-17 | The Colab notebook is removed; training, evaluation and export run directly through the `medvision-ml` CLI on any machine. Supersedes D24 | the notebook needed someone to keep a browser tab active for hours, and free sessions disconnected twice mid-run; the CLI is the tested path anyway, and the notebook only wrapped it |
+| D39 | 2026-10-17 | Train on Kaggle's free GPU (T4) through `notebooks/train_kaggle.ipynb`, run as a background commit; the notebook only calls the `medvision-ml` CLI, fails fast, deletes the downloaded images once split and writes results to `/kaggle/working` (the Output tab). Builds on D38 | a committed Kaggle run keeps going with the browser closed (up to 12 h, about 30 GPU hours a week free), which removes the babysitting that made Colab unreliable; the CLI stays the only tested logic |
 
 ---
 
