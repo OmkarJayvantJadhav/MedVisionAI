@@ -3,8 +3,9 @@
 ``python -m app.inference.download --base-url URL [--dest models]``
 
 ``URL`` is a folder (for example a GitHub release download URL) that serves
-``model_meta.json``, ``model.onnx`` and ``head_weights.npz``. Files are written
-atomically and only after their SHA-256 matches the metadata.
+``model_meta.json`` and every file it lists with a checksum (``model.onnx``,
+``head_weights.npz`` and, when the model has one, ``ood_stats.npz``). Files are
+written atomically and only after their SHA-256 matches the metadata.
 """
 
 from __future__ import annotations
@@ -74,9 +75,11 @@ def download_model(base_url: str, dest: Path, *, timeout: float = 60.0) -> Model
         raise ModelArtifactError("Downloaded metadata is not valid JSON.") from error
 
     for name in (MODEL_FILE, WEIGHTS_FILE):
-        expected = meta.checksums.get(name)
-        if expected is None:
+        if name not in meta.checksums:
             raise ModelArtifactError(f"No checksum recorded for {name}")
+    for name, expected in meta.checksums.items():
+        if name == META_FILE or Path(name).name != name or name.startswith("."):
+            raise ModelArtifactError(f"Unsafe file name in metadata: {name!r}")
         target = dest / name
         if target.is_file() and sha256_file(target) == expected:
             continue

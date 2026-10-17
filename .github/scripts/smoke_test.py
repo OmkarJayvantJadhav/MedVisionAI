@@ -3,8 +3,9 @@
 Usage: python smoke_test.py BASE_URL IMAGE [--wait SECONDS]
 
 Waits for /api/v1/ready, checks the home page, sends IMAGE to /api/v1/predict
-and /api/v1/explain, and reports p95 /predict latency over 20 warm requests.
-Exits non-zero on any failure. Uses only the standard library.
+and /api/v1/explain, checks that a generated non-skin image is rejected when the
+model ships an out-of-distribution gate, and reports p95 /predict latency over
+20 warm requests. Exits non-zero on any failure. Uses only the standard library.
 """
 
 from __future__ import annotations
@@ -12,11 +13,13 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import struct
 import sys
 import time
 import urllib.error
 import urllib.request
 import uuid
+import zlib
 from pathlib import Path
 
 LATENCY_BUDGET_MS = 150  # plan §11: p95 /predict, warning only
@@ -30,14 +33,39 @@ def get(url: str, timeout: float = 10) -> tuple[int, bytes]:
         return error.code, error.read()
 
 
-def post_image(url: str, image: Path, timeout: float = 60) -> dict:
+def stripes_png(size: int = 256) -> bytes:
+    """Coloured diagonal stripes: an image nothing like a dermoscopy photo."""
+    palette = [(230, 60, 40), (40, 90, 220), (250, 220, 40), (30, 160, 80)]
+    rows = b"".join(
+        b"\x00" + bytes(c for x in range(size) for c in palette[((x + y) // 16) % 4])
+        for y in range(size)
+    )
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        crc = struct.pack(">I", zlib.crc32(kind + data))
+        return struct.pack(">I", len(data)) + kind + data + crc
+
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
+
+
+def post_image(url: str, image: Path | bytes, timeout: float = 60) -> dict:
     boundary = uuid.uuid4().hex
+    if isinstance(image, Path):
+        name, kind, data = image.name, "image/jpeg", image.read_bytes()
+    else:
+        name, kind, data = "stripes.png", "image/png", image
     body = (
         (
             f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-            f'filename="{image.name}"\r\nContent-Type: image/jpeg\r\n\r\n'
+            f'filename="{name}"\r\nContent-Type: {kind}\r\n\r\n'
         ).encode()
-        + image.read_bytes()
+        + data
         + f"\r\n--{boundary}--\r\n".encode()
     )
     request = urllib.request.Request(
@@ -93,6 +121,16 @@ def main() -> None:
 
     explanation = post_image(f"{base}/api/v1/explain", args.image)
     check(len(explanation.get("heatmap_png", "")) > 100, "explain returns a heatmap")
+
+    _, meta = get(f"{base}/api/v1/meta")
+    if json.loads(meta)["thresholds"].get("ood_mahalanobis") is not None:
+        unrelated = post_image(f"{base}/api/v1/predict", stripes_png())
+        check(
+            unrelated["status"] == "rejected" and "out_of_distribution" in unrelated["reasons"],
+            "non-skin image rejected as out of distribution",
+        )
+    else:
+        print("     no out-of-distribution gate in this model")
 
     timings = []
     for _ in range(20):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -48,3 +49,24 @@ def test_unsupported_scheme(tmp_path: Path) -> None:
 def test_cli_exit_codes(release: str, tmp_path: Path) -> None:
     assert main(["--base-url", release, "--dest", str(tmp_path / "ok")]) == 0
     assert main(["--base-url", (tmp_path / "missing").as_uri(), "--dest", str(tmp_path / "x")]) == 1
+
+
+def test_every_listed_file_is_downloaded(tmp_path: Path) -> None:
+    # Regression: only model.onnx and head_weights.npz were fetched, so a model
+    # with an out-of-distribution gate failed to load after download.
+    source = write_model_dir(tmp_path / "release", ood_threshold=20.0)
+    dest = tmp_path / "models"
+    download_model(source.as_uri(), dest)
+    assert (dest / "ood_stats.npz").read_bytes() == (source / "ood_stats.npz").read_bytes()
+    assert load_artifacts(dest).ood_mean is not None
+
+
+@pytest.mark.parametrize("name", ["../escape.bin", "sub/file.bin", ".hidden", "model_meta.json"])
+def test_unsafe_file_names_are_refused(tmp_path: Path, name: str) -> None:
+    source = write_model_dir(tmp_path / "release")
+    meta = json.loads((source / "model_meta.json").read_text(encoding="utf-8"))
+    meta["files"][name] = {"sha256": "0" * 64}
+    (source / "model_meta.json").write_text(json.dumps(meta), encoding="utf-8")
+    with pytest.raises(ModelArtifactError, match="Unsafe"):
+        download_model(source.as_uri(), tmp_path / "models")
+    assert not (tmp_path / "escape.bin").exists()

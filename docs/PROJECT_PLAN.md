@@ -393,7 +393,9 @@ with green CI and an updated README section.
       after): `medvision-ml calibrate` (D41).
 - [x] Threshold fitting for `τ` and `τ_malignant` on validation, reported on
       test; `export --calibration` ships them (D41).
-- [ ] OOD gate (energy threshold from a licensed non-skin image set).
+- [x] OOD gate: Mahalanobis distance of the pooled features, threshold from
+      validation, reported on 497 CC BY 2.0 Open Images photos (D45); shipped
+      in release `model-v2.1.0`.
 - [ ] Robustness suite (blur, brightness, JPEG, noise, rotation).
 - [ ] Fairness analysis (or a documented limitation).
 - [ ] `docs/model_card.md`: intended use, data, metrics, limitations,

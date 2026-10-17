@@ -30,7 +30,7 @@ COPY backend/app ./app
 
 # Model files come from a GitHub release and are checksum-verified against
 # model_meta.json (D6, D18); the build fails if any file does not match.
-ARG MODEL_BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.0.0
+ARG MODEL_BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.1.0
 RUN mkdir -p /app/models && chown app:app /app/models
 USER app
 RUN python -m app.inference.download --base-url "$MODEL_BASE_URL" --dest /app/models
