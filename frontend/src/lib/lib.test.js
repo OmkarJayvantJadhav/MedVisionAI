@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { imageFile } from "../test/fixtures.js";
-import { errorMessage, formatPercent, riskInfo, statusInfo } from "./labels.js";
+import { errorMessage, formatPercent, riskInfo, statusInfo, verdict } from "./labels.js";
 import { validateFile } from "./validation.js";
 
 describe("labels", () => {
@@ -17,6 +17,16 @@ describe("labels", () => {
     expect(errorMessage({ code: "image_too_large" })).toMatch(/too large/);
     expect(errorMessage({ code: "brand_new", message: "Server says no." })).toBe("Server says no.");
     expect(errorMessage(null)).toBe("Something went wrong.");
+  });
+
+  it("puts the malignancy flag above every other verdict", () => {
+    expect(verdict({ status: "low_confidence", risk_flag: "malignant_suspected" }).tone).toBe(
+      "danger",
+    );
+    expect(verdict({ status: "ok", risk_flag: "malignant_suspected" }).tone).toBe("danger");
+    expect(verdict({ status: "low_confidence", risk_flag: "benign" }).tone).toBe("caution");
+    expect(verdict({ status: "ok", risk_flag: "benign" }).tone).toBe("positive");
+    expect(verdict({ status: "rejected", risk_flag: "uncertain" }).tone).toBe("neutral");
   });
 
   it("formats percentages", () => {

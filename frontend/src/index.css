@@ -1,9 +1,131 @@
 @import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/*
+ * Design tokens. A calm clinical palette: ink-blue text on a cool off-white,
+ * one deep teal accent, and semantic colours kept separate from the accent
+ * (benign = emerald, caution = amber, malignancy flag = rose).
+ */
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --color-canvas: #f5f7f9;
+  --color-surface: #ffffff;
+  --color-sunken: #eef2f5;
+  --color-ink: #0f1d2a;
+  --color-ink-soft: #4a5a68;
+  --color-ink-faint: #7a8995;
+  --color-line: #dde4ea;
+  --color-accent: #0b6e75;
+  --color-accent-strong: #08575d;
+  --color-accent-soft: #e3f2f2;
+
+  --color-benign: #12784a;
+  --color-benign-soft: #e4f4ec;
+  --color-caution: #9a5b00;
+  --color-caution-soft: #fdf1dc;
+  --color-alert: #b42343;
+  --color-alert-soft: #fbe7eb;
+
+  --shadow-card: 0 1px 2px rgb(15 29 42 / 0.04), 0 8px 24px -12px rgb(15 29 42 / 0.12);
+  --animate-fade-up: fade-up 0.35s ease-out both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #0b141c;
+    --color-surface: #111d27;
+    --color-sunken: #0d1821;
+    --color-ink: #e6edf2;
+    --color-ink-soft: #a5b3bf;
+    --color-ink-faint: #74838f;
+    --color-line: #22313d;
+    --color-accent: #4cc3c6;
+    --color-accent-strong: #7bd6d8;
+    --color-accent-soft: #10302f;
+
+    --color-benign: #5fd39b;
+    --color-benign-soft: #0f2a1f;
+    --color-caution: #f2b552;
+    --color-caution-soft: #2d2210;
+    --color-alert: #ff8fa4;
+    --color-alert-soft: #331820;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  }
+}
 
 :root {
   color-scheme: light dark;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-sunken) 0%,
+    var(--color-line) 50%,
+    var(--color-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

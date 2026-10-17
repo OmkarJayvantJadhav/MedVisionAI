@@ -7,53 +7,62 @@ import { useId, useState } from "react";
  */
 export default function HeatmapViewer({ imageSrc, heatmapPng, explainedClass }) {
   const sliderId = useId();
+  const switchId = useId();
   const [opacity, setOpacity] = useState(0.45);
   const [visible, setVisible] = useState(true);
 
   return (
-    <figure>
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-slate-200 dark:ring-slate-700">
+    <figure className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">Where the model looked</p>
+        <label htmlFor={switchId} className="flex cursor-pointer items-center gap-2.5 text-sm">
+          <span className="text-ink-soft">Show heatmap</span>
+          <input
+            id={switchId}
+            type="checkbox"
+            role="switch"
+            checked={visible}
+            onChange={(event) => setVisible(event.target.checked)}
+            className="peer sr-only"
+          />
+          <span
+            aria-hidden="true"
+            className="relative h-6 w-10 rounded-full bg-line transition peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-4"
+          />
+        </label>
+      </div>
+      <div className="relative overflow-hidden rounded-2xl bg-sunken">
         <img src={imageSrc} alt="Uploaded skin lesion" className="block w-full" />
         {visible && (
           <img
             src={`data:image/png;base64,${heatmapPng}`}
             alt={`Heatmap of regions that influenced the ${explainedClass} score`}
-            className="pointer-events-none absolute inset-0 h-full w-full"
+            className="pointer-events-none absolute inset-0 h-full w-full transition-opacity"
             style={{ opacity }}
           />
         )}
       </div>
-      <figcaption className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-        Warmer colours mark regions that most influenced the <strong>{explainedClass}</strong>{" "}
-        score. A heatmap shows what the model looked at; it is not evidence of a diagnosis.
-      </figcaption>
-      <div className="mt-3 flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={visible}
-            onChange={(event) => setVisible(event.target.checked)}
-            className="h-4 w-4 accent-teal-700"
-          />
-          Show heatmap
+      <div className="flex items-center gap-3">
+        <label htmlFor={sliderId} className="text-sm text-ink-soft">
+          Opacity
         </label>
-        <div className="flex items-center gap-2">
-          <label htmlFor={sliderId} className="text-sm">
-            Opacity
-          </label>
-          <input
-            id={sliderId}
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={opacity}
-            disabled={!visible}
-            onChange={(event) => setOpacity(Number(event.target.value))}
-            className="w-40 accent-teal-700"
-          />
-        </div>
+        <input
+          id={sliderId}
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={opacity}
+          disabled={!visible}
+          onChange={(event) => setOpacity(Number(event.target.value))}
+          className="h-1.5 flex-1 cursor-pointer accent-[var(--color-accent)] disabled:opacity-40"
+        />
       </div>
+      <figcaption className="text-xs leading-relaxed text-ink-soft">
+        Warmer colours mark the regions that most influenced the{" "}
+        <strong className="font-semibold text-ink">{explainedClass}</strong> score. The heatmap
+        shows what the model looked at; it is not evidence of a diagnosis.
+      </figcaption>
     </figure>
   );
 }
