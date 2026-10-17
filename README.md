@@ -29,10 +29,10 @@ roadmap, and design decisions.
 
 ## Model
 
-Release [`model-v2.0.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.0.0)
+Release [`model-v2.1.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.1.0)
 (EfficientNetB0, ISIC 2019, CC BY-NC 4.0). Results on the held-out test split
 (2,527 images, lesion-grouped, no leakage), reproducible with
-`medvision-ml evaluate` and `medvision-ml calibrate`:
+`medvision-ml evaluate`, `medvision-ml calibrate` and `medvision-ml fit-ood`:
 
 | Metric | Value |
 |---|---|
@@ -41,13 +41,16 @@ Release [`model-v2.0.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/relea
 | Melanoma recall (top-1) | 0.435 |
 | Malignant-group recall at the fitted threshold | 0.904 (precision 0.681) |
 | Calibration error (ECE) | 0.026 |
+| Test lesions accepted by the out-of-distribution check | 98.9% |
+| Everyday photos rejected (497 Open Images photos) | 99.6% |
 
 Top-1 melanoma recall is still low, so the app flags a possible malignancy
 from the summed probability of all malignant classes, with a threshold fitted
-to catch 90% of malignant validation images.
+to catch 90% of malignant validation images. Photos that do not resemble the
+dermoscopy training images are rejected instead of classified.
 
 ```bash
-make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.0.0
+make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.1.0
 ```
 
 ## Train the model
