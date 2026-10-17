@@ -86,7 +86,16 @@ uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
 ```
 
 A GPU is used automatically when TensorFlow finds one (with mixed precision);
-otherwise training runs on the CPU. Decoded images can be cached on disk with
+otherwise training runs on the CPU.
+
+**On a free Kaggle GPU.** Import
+[`notebooks/train_kaggle.ipynb`](../notebooks/train_kaggle.ipynb) into Kaggle
+(*Create → New Notebook → File → Import Notebook*, then paste its GitHub URL).
+In *Session options*, set *Accelerator* to **GPU T4 x2** and *Internet* to
+**On** (the account must be phone-verified). Then choose *Save Version → Save &
+Run All (Commit)*: the run continues with the browser closed and its results
+appear in the version's *Output* tab. Every step, including the leakage check,
+stops the run if it fails. Decoded images can be cached on disk with
 `MEDVISION__DATA__CACHE_DIR=/path/to/cache`, because the full set needs about
 12 GB of memory.
 

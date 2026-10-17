@@ -27,6 +27,10 @@ ISIC 2019, check the splits for leakage, train, evaluate on the held-out test
 set and export the serving files. See [`docs/DATASETS.md`](docs/DATASETS.md)
 for the steps, the data and its licence.
 
+[`notebooks/train_kaggle.ipynb`](notebooks/train_kaggle.ipynb) runs every step
+on a free Kaggle GPU in the background (*Save & Run All*), so no browser tab
+has to stay open.
+
 ## Development
 
 Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. Python 3.11 is
@@ -47,6 +51,7 @@ make help    # list all targets
 | `backend/` | FastAPI inference service (ONNX Runtime, no TensorFlow) |
 | `frontend/` | React (JavaScript) + Vite + Tailwind web app |
 | `models/` | downloaded model artifacts (not committed) |
+| `notebooks/` | Kaggle notebook that runs the full training pipeline on a free GPU |
 | `docs/` | project plan, dataset sources and licences, design documents |
 
 ## Disclaimer
