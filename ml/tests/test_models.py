@@ -150,3 +150,35 @@ def test_mixed_precision_model_loads_and_exports_in_float32(tmp_path: Path) -> N
         image_size=SIZE,
     )
     assert result.max_probability_diff <= 1e-4
+
+
+def test_float32_reload_keeps_input_normalisation(tmp_path: Path) -> None:
+    """Rebuilding a mixed-precision model in float32 must keep every layer's behaviour.
+
+    Regression (D40): weights were copied with ``set_weights``, which skipped the
+    Normalization layer's load hook, so the reloaded model stopped normalising its
+    input. Evaluation and export then scored the first ISIC model ~5 points lower
+    than training did. Untrained ``weights=None`` models hid this because their
+    normalisation statistics are the identity.
+    """
+    keras.mixed_precision.set_global_policy("mixed_float16")
+    try:
+        keras.utils.set_random_seed(2)
+        mixed = build_model(ModelConfig(), AugmentationConfig(), CLASSES, SIZE, weights=None)
+        normalisation = next(
+            layer
+            for layer in get_backbone(mixed).layers
+            if isinstance(layer, keras.layers.Normalization)
+        )
+        rng = np.random.default_rng(0)
+        normalisation.adapt(rng.normal(0.6, 0.05, size=(16, SIZE, SIZE, 3)).astype("float32"))
+        save_model(mixed, tmp_path / "mixed.keras", [f"c{i}" for i in range(CLASSES)])
+        images = rng.uniform(0, 255, size=(4, SIZE, SIZE, 3)).astype("float32")
+        expected = np.asarray(get_backbone(mixed)(images, training=False), dtype=np.float32)
+    finally:
+        keras.mixed_precision.set_global_policy("float32")
+
+    restored = load_model(tmp_path / "mixed.keras")
+    actual = np.asarray(get_backbone(restored)(images, training=False))
+    relative = np.abs(actual - expected).max() / np.abs(expected).max()
+    assert relative < 0.02

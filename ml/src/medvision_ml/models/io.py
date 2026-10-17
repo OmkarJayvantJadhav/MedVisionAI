@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +49,7 @@ def to_float32(model: keras.Model) -> keras.Model:
     Mixed precision keeps the weights in float32 but computes in float16, and a
     saved model keeps that policy. Inference, evaluation and export must match
     the float32 ONNX model that is served, so the architecture is rebuilt with
-    float32 layers and the (already float32) weights are copied over unchanged.
+    float32 layers and the (already float32) weights are loaded into it unchanged.
     Models without reduced-precision layers are returned as they are.
     """
     config = model.get_config()
@@ -56,7 +57,13 @@ def to_float32(model: keras.Model) -> keras.Model:
     if converted == config:
         return model
     rebuilt = model.__class__.from_config(converted)
-    rebuilt.set_weights(model.get_weights())
+    # Copy the weights through Keras's own loader. `set_weights` assigns the
+    # variables but skips the load hooks, so a Normalization layer kept its
+    # initial statistics and silently stopped normalising the input (D40).
+    with tempfile.TemporaryDirectory() as tmp:
+        weights = Path(tmp) / "model.weights.h5"
+        model.save_weights(weights)
+        rebuilt.load_weights(weights)
     return rebuilt
 
 
