@@ -196,6 +196,43 @@ def _fit_ood(args: argparse.Namespace, config: ProjectConfig) -> int:
     return 0
 
 
+def _robustness(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.calibration.calibrate import read_calibration
+    from medvision_ml.calibration.ood import read_ood
+    from medvision_ml.evaluation.robustness import robustness
+
+    temperature, fitted = read_calibration(args.calibration)
+    report = robustness(
+        config,
+        args.model,
+        temperature=temperature,
+        malignant_threshold=fitted["malignant"],
+        ood=read_ood(args.ood) if args.ood is not None else None,
+        output_dir=args.output,
+        trust_legacy_lambda=args.trust_legacy_model,
+    )
+    print(json.dumps(report["conditions"], indent=2))
+    return 0
+
+
+def _subgroups(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.calibration.calibrate import read_calibration
+    from medvision_ml.evaluation.subgroups import subgroups
+
+    temperature, fitted = read_calibration(args.calibration)
+    report = subgroups(
+        config,
+        args.model,
+        args.metadata,
+        temperature=temperature,
+        malignant_threshold=fitted["malignant"],
+        output_dir=args.output,
+        trust_legacy_lambda=args.trust_legacy_model,
+    )
+    print(json.dumps(report["groups"], indent=2))
+    return 0
+
+
 def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.calibration.calibrate import read_calibration
     from medvision_ml.calibration.ood import read_ood
@@ -286,6 +323,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("evaluate", _evaluate, "evaluate a saved model on a split"),
         ("calibrate", _calibrate, "fit temperature and decision thresholds on validation"),
         ("fit-ood", _fit_ood, "fit the out-of-distribution gate on train and validation"),
+        ("robustness", _robustness, "score the test split under image corruptions"),
+        ("subgroups", _subgroups, "score the test split by sex, age and body site"),
         ("gradcam", _gradcam, "explain one image with Grad-CAM"),
         ("export", _export, "export a model to ONNX serving artifacts"),
     ):
@@ -315,6 +354,24 @@ def build_parser() -> argparse.ArgumentParser:
                 default=None,
                 help="ood.json from `fit-ood`; ships the gate's statistics and threshold",
             )
+        elif name in {"robustness", "subgroups"}:
+            sub.add_argument(
+                "--calibration",
+                type=Path,
+                required=True,
+                help="calibration.json; its temperature and malignancy threshold are applied",
+            )
+            if name == "robustness":
+                sub.add_argument(
+                    "--ood", type=Path, default=None, help="ood.json from `fit-ood` (optional)"
+                )
+            else:
+                sub.add_argument(
+                    "--metadata",
+                    type=Path,
+                    required=True,
+                    help="ISIC_2019_Training_Metadata.csv",
+                )
         elif name == "fit-ood":
             sub.add_argument(
                 "--non-skin", type=Path, required=True, help="folder of ordinary photos"

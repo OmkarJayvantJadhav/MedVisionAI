@@ -97,6 +97,13 @@ split and reports them on the test split. `fit-ood` fits the
 out-of-distribution gate (below). `export --calibration --ood` ships both in
 the serving files.
 
+`make evaluate MODEL=ml/artifacts/isic2019-effb0/model.keras METADATA=<path to
+ISIC_2019_Training_Metadata.csv>` regenerates every report the model card
+quotes: test metrics, calibration, the out-of-distribution gate, robustness to
+twelve image conditions (`medvision-ml robustness`) and results by sex, age band
+and body site (`medvision-ml subgroups`). Reports are written to
+`ml/outputs/<report>/<run>/`.
+
 A GPU is used automatically when TensorFlow finds one (with mixed precision);
 otherwise training runs on the CPU.
 
