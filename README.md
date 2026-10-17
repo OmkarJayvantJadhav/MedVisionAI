@@ -61,7 +61,7 @@ docker compose up --build    # then open http://localhost:7860
 ```
 
 The image bundles the website, the API and the checksum-verified model. See
-[`docs/deploy.md`](docs/deploy.md) for the Hugging Face Spaces deployment.
+[`docs/deploy.md`](docs/deploy.md) for the free Render deployment.
 
 ## Development
 

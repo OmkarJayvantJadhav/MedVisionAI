@@ -2,8 +2,8 @@
 
 The app ships as one Docker image: the React frontend, the FastAPI backend and
 the model, which is downloaded from the GitHub release and checksum-verified
-while the image is built. The image runs as a non-root user on port 7860 and
-has a health check.
+while the image is built. The image runs as a non-root user, listens on
+`$PORT` (7860 by default) and has a health check.
 
 ## Run it locally
 
@@ -13,37 +13,34 @@ docker compose up --build        # or: make docker-build docker-run
 make smoke                       # checks /ready, the home page, /predict and /explain
 ```
 
-## Live demo on Hugging Face Spaces
+## Live demo on Render (free)
 
-`.github/workflows/deploy.yml` deploys `main` to a free Hugging Face Space
-(Docker SDK, CPU) after CI passes:
-
-1. `.github/scripts/deploy_space.py` copies the Dockerfile, `backend/` and
-   `frontend/` (tracked files only) into a staging folder with a Space README,
-   creates the Space if needed and uploads it as one commit.
-2. It waits until Hugging Face has rebuilt the Space and reports `RUNNING`;
-   a build or runtime error fails the job.
-3. `.github/scripts/smoke_test.py` then tests the live URL.
+`render.yaml` describes the service for Render's free web-service tier. Render
+builds the Dockerfile and **deploys `main` automatically once GitHub CI has
+passed** (`autoDeployTrigger: checksPass`).
 
 ### One-time setup
 
-1. Create a free account at <https://huggingface.co/join>.
-2. Create a token at <https://huggingface.co/settings/tokens>: **Create new
-   token → Write**, and copy it.
-3. In GitHub, open the repository's **Settings → Secrets and variables →
-   Actions**:
-   - **Secrets** tab → **New repository secret**: name `HF_TOKEN`, value the token.
-   - **Variables** tab → **New repository variable**: name `HF_SPACE`, value
-     `<your-hf-username>/medvision-ai`.
-4. Open **Actions → Deploy → Run workflow**. The first build takes about 5–10
-   minutes. The site then lives at
-   `https://<your-hf-username>-medvision-ai.hf.space`.
+1. Sign up at <https://render.com> with your GitHub account.
+2. **New → Blueprint**, pick the `MedVisionAI` repository and confirm. Render
+   reads `render.yaml` and creates the `medvision-ai` web service on the free
+   plan. The first build takes about 5–10 minutes.
+3. Copy the service URL from the Render dashboard (for example
+   `https://medvision-ai.onrender.com`).
+4. In GitHub, open **Settings → Secrets and variables → Actions → Variables →
+   New repository variable**: name `LIVE_URL`, value the service URL. The
+   **Live site** workflow then smoke-tests the public demo daily and on demand.
 
-Without the secret and variable the Deploy workflow only prints a notice.
+### What the free tier means
 
-### Rate limit behind the Space proxy
+- **Sleeps when idle.** The service stops after 15 minutes without visitors;
+  the next visit wakes it in about a minute.
+- **A fraction of one CPU and 512 MB of memory.** The app uses about 170 MB.
+  With `MEDVISION_INFERENCE_THREADS=1` an analysis with heatmap takes about
+  1–3 s (measured in the image limited to 0.1 CPU).
+- **Shared rate limit.** Visitors arrive through Render's proxy, so the app sees
+  one address for all of them; `MEDVISION_RATE_LIMIT_PER_MINUTE=60` is a
+  shared ceiling that protects the CPU.
 
-Every visitor reaches the Space through Hugging Face's proxy, so the app sees
-one client address for all of them. The deploy sets
-`MEDVISION_RATE_LIMIT_PER_MINUTE=60` as a Space variable: a shared ceiling that
-protects the free CPU rather than a per-person limit (D43).
+Hugging Face Spaces was the first choice (D5) but no longer hosts Docker Spaces
+on its free CPU tier (D44).
