@@ -1,17 +1,27 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App.jsx";
 import { explainResponse, imageFile, jsonResponse, metaResponse } from "./test/fixtures.js";
 
-function mockApi({ explain = jsonResponse(explainResponse) } = {}) {
-  const fetchMock = vi.fn((url) =>
-    Promise.resolve(url.endsWith("/meta") ? jsonResponse(metaResponse) : explain),
-  );
+const VERDICT = "Possible malignancy: please see a dermatologist";
+
+function mockApi({ explain = () => jsonResponse(explainResponse) } = {}) {
+  const fetchMock = vi.fn((url) => {
+    if (url.endsWith("/meta")) return Promise.resolve(jsonResponse(metaResponse));
+    if (url.endsWith(".jpg"))
+      return Promise.resolve(
+        new Response(new Uint8Array(64), { headers: { "Content-Type": "image/jpeg" } }),
+      );
+    return Promise.resolve(explain());
+  });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
+
+const explainCalls = (fetchMock) =>
+  fetchMock.mock.calls.filter(([url]) => url === "/api/v1/explain");
 
 async function chooseFile(user, file = imageFile()) {
   await user.upload(screen.getByLabelText("Choose an image file"), file);
@@ -21,33 +31,52 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("App", () => {
-  it("always shows the disclaimer and loads model metadata", async () => {
+  it("always shows the disclaimer and the model facts from metadata", async () => {
     mockApi();
     render(<App />);
     expect(screen.getByRole("note", { name: "Medical disclaimer" })).toBeInTheDocument();
-    expect(await screen.findByText(/Model skin-effb0-v2.0.0/)).toBeInTheDocument();
+    const facts = await screen.findByText("Conditions recognised");
+    expect(facts.closest("dl")).toHaveTextContent("Melanoma, Melanocytic Nevus, Benign Keratosis");
+    expect(screen.getByText("Provisional (not yet fitted on data)")).toBeInTheDocument();
+    expect(screen.getAllByText("skin-effb0-v2.0.0").length).toBeGreaterThan(0);
   });
 
-  it("analyses an uploaded image and shows the result", async () => {
+  it("analyses a chosen photo straight away and can start over", async () => {
     const user = userEvent.setup();
     const fetchMock = mockApi();
     render(<App />);
 
-    const analyse = screen.getByRole("button", { name: "Analyse image" });
-    expect(analyse).toBeDisabled();
+    expect(screen.getByText(/result and heatmap will appear here/)).toBeInTheDocument();
     await chooseFile(user);
     expect(screen.getByAltText("Selected skin lesion")).toBeInTheDocument();
-
-    await user.click(analyse);
-    expect(await screen.findByText("Assessment complete")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/explain",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    expect(explainCalls(fetchMock)).toHaveLength(1);
+    expect(explainCalls(fetchMock)[0][1]).toEqual(expect.objectContaining({ method: "POST" }));
 
     await user.click(screen.getByRole("button", { name: "Choose another" }));
-    expect(screen.queryByText("Assessment complete")).not.toBeInTheDocument();
+    expect(screen.queryByText(VERDICT)).not.toBeInTheDocument();
     expect(screen.getByText(/result and heatmap will appear here/)).toBeInTheDocument();
+  });
+
+  it("analyses a sample image", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockApi();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /Basal cell carcinoma/ }));
+    expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/samples/basal-cell-carcinoma.jpg", expect.anything());
+    const upload = explainCalls(fetchMock)[0][1].body.get("file");
+    expect(upload.name).toBe("basal-cell-carcinoma.jpg");
+  });
+
+  it("analyses an image pasted from the clipboard", async () => {
+    const fetchMock = mockApi();
+    render(<App />);
+    const pasted = imageFile("pasted.png");
+    fireEvent(window, Object.assign(new Event("paste"), { clipboardData: { files: [pasted] } }));
+    expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    expect(explainCalls(fetchMock)[0][1].body.get("file")).toBe(pasted);
   });
 
   it("rejects unsupported files before uploading", async () => {
@@ -57,23 +86,37 @@ describe("App", () => {
 
     await chooseFile(user, imageFile("anim.gif", "image/gif"));
     expect(screen.getByRole("alert")).toHaveTextContent(/Only JPEG, PNG and WebP/);
-    expect(fetchMock).not.toHaveBeenCalledWith("/api/v1/explain", expect.anything());
+    expect(explainCalls(fetchMock)).toHaveLength(0);
   });
 
-  it("explains server errors and can dismiss them", async () => {
+  it("explains server errors, retries and can dismiss them", async () => {
     const user = userEvent.setup();
-    mockApi({
-      explain: jsonResponse({ error: { code: "model_unavailable", message: "x" } }, 503),
+    let calls = 0;
+    const fetchMock = mockApi({
+      explain: () =>
+        calls++ === 0
+          ? jsonResponse({ error: { code: "model_unavailable", message: "x" } }, 503)
+          : jsonResponse(explainResponse),
     });
     render(<App />);
 
     await chooseFile(user);
-    await user.click(screen.getByRole("button", { name: "Analyse image" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/model is still loading/);
-    expect(screen.getByRole("button", { name: "Analyse image" })).toBeEnabled();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/model is still loading/);
 
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    expect(explainCalls(fetchMock)).toHaveLength(2);
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
+
+  it("can dismiss an error", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    mockApi();
+    render(<App />);
+    await chooseFile(user, imageFile("anim.gif", "image/gif"));
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("still works when metadata cannot be loaded", async () => {
@@ -88,7 +131,7 @@ describe("App", () => {
     );
     render(<App />);
     await chooseFile(user);
-    await user.click(screen.getByRole("button", { name: "Analyse image" }));
-    expect(await screen.findByText("Assessment complete")).toBeInTheDocument();
+    expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    expect(screen.getByText(/Model details appear here/)).toBeInTheDocument();
   });
 });

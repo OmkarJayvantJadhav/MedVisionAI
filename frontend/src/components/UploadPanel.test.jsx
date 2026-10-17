@@ -2,11 +2,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { SAMPLES } from "../lib/samples.js";
 import { imageFile } from "../test/fixtures.js";
 import UploadPanel from "./UploadPanel.jsx";
 
 function renderPanel(props = {}) {
-  const handlers = { onSelect: vi.fn(), onAnalyze: vi.fn(), onClear: vi.fn() };
+  const handlers = { onSelect: vi.fn(), onSample: vi.fn(), onClear: vi.fn() };
   render(<UploadPanel preview={null} busy={false} {...handlers} {...props} />);
   return handlers;
 }
@@ -14,15 +15,24 @@ function renderPanel(props = {}) {
 describe("UploadPanel", () => {
   it("accepts a dropped file and highlights while dragging", () => {
     const { onSelect } = renderPanel();
-    const zone = screen.getByText("Drop an image here").closest("label");
+    const zone = screen.getByText("Drop an image here").closest("[data-dragging]");
     const file = imageFile();
 
     fireEvent.dragOver(zone, { dataTransfer: { files: [] } });
-    expect(zone.className).toContain("border-teal-600");
+    expect(zone).toHaveAttribute("data-dragging", "true");
     fireEvent.dragLeave(zone);
-    expect(zone.className).not.toContain("bg-teal-50");
+    expect(zone).toHaveAttribute("data-dragging", "false");
     fireEvent.drop(zone, { dataTransfer: { files: [file] } });
     expect(onSelect).toHaveBeenCalledWith(file);
+  });
+
+  it("opens the file picker from the drop zone button", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    const input = screen.getByLabelText("Choose an image file");
+    const click = vi.spyOn(input, "click");
+    await user.click(screen.getByRole("button", { name: /Drop an image here/ }));
+    expect(click).toHaveBeenCalled();
   });
 
   it("accepts a photo from the camera input", async () => {
@@ -39,9 +49,17 @@ describe("UploadPanel", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("shows progress and disables actions while busy", () => {
+  it("offers every sample", async () => {
+    const user = userEvent.setup();
+    const { onSample } = renderPanel();
+    for (const sample of SAMPLES) {
+      await user.click(screen.getByRole("button", { name: sample.label }));
+    }
+    expect(onSample.mock.calls.map(([sample]) => sample.id)).toEqual(SAMPLES.map((s) => s.id));
+  });
+
+  it("disables starting over while busy", () => {
     renderPanel({ preview: "blob:preview", busy: true });
-    expect(screen.getByRole("button", { name: "Analysing…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Choose another" })).toBeDisabled();
   });
 });

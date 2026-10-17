@@ -40,6 +40,54 @@ const ERROR_MESSAGES = {
   internal_error: "Something went wrong on the server. Please try again.",
 };
 
+/** Why an image was rejected or flagged, in the user's words. */
+export const REASONS = {
+  too_dark: "The photo is too dark.",
+  too_bright: "The photo is overexposed.",
+  too_blurry: "The photo is too blurry.",
+  out_of_distribution: "It does not look like a close-up of a skin lesion.",
+  low_confidence: "The model's top answer is below its confidence threshold.",
+  malignant_probability_above_threshold:
+    "Classes that can be cancerous or pre-cancerous together passed the safety threshold.",
+};
+
+/**
+ * One headline verdict per result, with what to do next. The malignancy flag
+ * wins over every other state, so a warning is never hidden behind "unsure".
+ */
+export function verdict(result) {
+  if (result.status === "rejected") {
+    return {
+      tone: "neutral",
+      title: "This photo could not be assessed",
+      guidance:
+        "Retake it in good light, in focus, with the spot filling most of the frame, then try again.",
+    };
+  }
+  if (result.risk_flag === "malignant_suspected") {
+    return {
+      tone: "danger",
+      title: "Possible malignancy: please see a dermatologist",
+      guidance:
+        "The model flagged patterns it associates with skin cancer or pre-cancer. Only a clinician can tell what this is, so please book a dermatologist appointment and show them this spot.",
+    };
+  }
+  if (result.status === "low_confidence") {
+    return {
+      tone: "caution",
+      title: "The model is unsure about this photo",
+      guidance:
+        "Try a sharper, closer, well-lit photo. If the spot is new, changing, bleeding or itching, see a dermatologist whatever the result.",
+    };
+  }
+  return {
+    tone: "positive",
+    title: "No malignancy flag",
+    guidance:
+      "The model did not flag signs it associates with skin cancer. This does not rule anything out: see a dermatologist if the spot changes in size, shape or colour.",
+  };
+}
+
 const FALLBACK = { label: "Unknown", tone: "neutral" };
 
 export function statusInfo(status) {

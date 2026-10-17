@@ -1,22 +1,29 @@
 import { errorMessage } from "../lib/labels.js";
+import { AlertIcon } from "./icons.jsx";
 
-export default function ErrorAlert({ error, onDismiss }) {
+export default function ErrorAlert({ error, onDismiss, onRetry }) {
   if (!error) return null;
   return (
     <div
       role="alert"
-      className="flex items-start justify-between gap-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+      className="animate-fade-up flex items-start gap-3 rounded-2xl border border-alert/30 bg-alert-soft p-4 text-sm text-ink"
     >
-      <p>{typeof error === "string" ? error : errorMessage(error)}</p>
-      {onDismiss && (
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="shrink-0 font-medium underline underline-offset-2"
-        >
-          Dismiss
-        </button>
-      )}
+      <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-alert" />
+      <p className="flex-1 leading-relaxed">
+        {typeof error === "string" ? error : errorMessage(error)}
+      </p>
+      <div className="flex shrink-0 gap-3 font-semibold">
+        {onRetry && (
+          <button type="button" onClick={onRetry} className="text-alert hover:underline">
+            Try again
+          </button>
+        )}
+        {onDismiss && (
+          <button type="button" onClick={onDismiss} className="text-ink-soft hover:underline">
+            Dismiss
+          </button>
+        )}
+      </div>
     </div>
   );
 }

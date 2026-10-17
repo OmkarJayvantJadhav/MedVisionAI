@@ -105,6 +105,14 @@ stops the run if it fails. Decoded images can be cached on disk with
 `MEDVISION__DATA__CACHE_DIR=/path/to/cache`, because the full set needs about
 12 GB of memory.
 
+### Sample images in the web app
+
+`frontend/public/samples/` holds three ISIC 2019 images from the held-out test
+split (never used in training), resized to 640 px, so visitors can try the demo
+without their own photo: ISIC_0000140 (melanoma), ISIC_0024885 (basal cell
+carcinoma) and ISIC_0000082 (melanocytic nevus). They are redistributed under
+CC BY-NC 4.0 with the attribution below.
+
 ### Required attribution
 
 Any published model, figure or report derived from this data must cite:

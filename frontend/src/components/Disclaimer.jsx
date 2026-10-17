@@ -1,3 +1,5 @@
+import { InfoIcon } from "./icons.jsx";
+
 export const DISCLAIMER =
   "Not a medical diagnosis. This tool is for education and screening research only. " +
   "Please consult a qualified dermatologist about any skin concern.";
@@ -7,9 +9,12 @@ export default function Disclaimer({ text = DISCLAIMER }) {
     <div
       role="note"
       aria-label="Medical disclaimer"
-      className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+      className="border-b border-caution/25 bg-caution-soft text-caution"
     >
-      <strong className="font-semibold">Disclaimer:</strong> {text}
+      <p className="mx-auto flex max-w-6xl items-start justify-center gap-2 px-4 py-2 text-center text-[13px] leading-snug font-medium sm:items-center">
+        <InfoIcon className="mt-px h-4 w-4 shrink-0 sm:mt-0" />
+        <span>{text}</span>
+      </p>
     </div>
   );
 }
