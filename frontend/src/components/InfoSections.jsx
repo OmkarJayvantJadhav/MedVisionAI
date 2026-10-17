@@ -1,5 +1,6 @@
 import { formatPercent } from "../lib/labels.js";
 import { LockIcon } from "./icons.jsx";
+import { REPO_URL } from "./TopBar.jsx";
 
 const BACKBONES = {
   efficientnetb0: "EfficientNet-B0",
@@ -7,50 +8,51 @@ const BACKBONES = {
   convnext_tiny: "ConvNeXt-Tiny",
   mobilenetv2: "MobileNetV2",
 };
-import { REPO_URL } from "./TopBar.jsx";
 
-function SectionHeading({ eyebrow, title, children }) {
+function Eyebrow({ children }) {
   return (
-    <div className="max-w-2xl">
-      <p className="text-xs font-semibold tracking-[0.1em] text-accent uppercase">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
-      {children && <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">{children}</p>}
-    </div>
+    <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">{children}</p>
   );
 }
 
 const STEPS = [
   {
-    title: "Quality check",
-    text: "The photo is decoded in memory and checked for darkness, glare and blur. Unusable photos are rejected instead of guessed at.",
+    title: "Check the photo",
+    text: "Dark, blurry, grainy or non-dermoscopy images are turned away instead of guessed at.",
   },
   {
-    title: "Classification",
-    text: "A convolutional neural network scores every condition it was trained on, and temperature scaling calibrates those scores into honest probabilities.",
+    title: "Classify",
+    text: "A neural network scores eight conditions; temperature scaling keeps the percentages honest.",
   },
   {
-    title: "Safety rules",
-    text: "Answers below a confidence threshold are marked as unsure, and a malignancy flag is raised whenever cancer-related classes add up past a second threshold.",
+    title: "Apply safety rules",
+    text: "Unsure answers are marked as such, and a malignancy flag fires when cancer-related classes add up.",
   },
   {
-    title: "Explanation",
-    text: "A class activation map shows which regions drove the score, computed from the same forward pass in milliseconds.",
+    title: "Explain",
+    text: "A heatmap from the same forward pass shows which regions drove the score.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-      <SectionHeading eyebrow="How it works" title="From photo to explained result in seconds">
-        Every step runs on the server&apos;s CPU with ONNX Runtime. Nothing is sent to third
-        parties.
-      </SectionHeading>
-      <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-20 sm:py-24">
+      <div className="max-w-2xl">
+        <Eyebrow>How it works</Eyebrow>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          Four steps, a few seconds.
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
+          Everything runs on the server&apos;s CPU with ONNX Runtime. Nothing is sent to third
+          parties.
+        </p>
+      </div>
+      <ol className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, index) => (
-          <li key={step.title} className="rounded-2xl border border-line bg-surface p-5">
-            <span className="font-mono text-xs font-medium text-accent">Step {index + 1}</span>
+          <li key={step.title} className="border-t border-line pt-5">
+            <span className="font-mono text-xs text-accent">0{index + 1}</span>
             <h3 className="mt-2 text-base font-semibold">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{step.text}</p>
           </li>
         ))}
       </ol>
@@ -60,28 +62,37 @@ export function HowItWorks() {
 
 function Fact({ label, children }) {
   return (
-    <div className="border-t border-line py-3.5 sm:grid sm:grid-cols-[14rem_1fr] sm:gap-6">
-      <dt className="text-sm font-medium text-ink-soft">{label}</dt>
-      <dd className="mt-1 text-sm sm:mt-0">{children}</dd>
+    <div className="flex flex-col gap-1 border-t border-line py-4 sm:grid sm:grid-cols-[13rem_1fr] sm:gap-6">
+      <dt className="text-sm text-ink-soft">{label}</dt>
+      <dd className="text-sm">{children}</dd>
     </div>
   );
 }
 
 /** Facts read from the served model's metadata, so they always match it. */
 export function ModelFacts({ meta }) {
+  const gates = [];
+  if (meta?.thresholds?.ood_mahalanobis != null) gates.push("non-dermoscopy images");
+  if (meta?.thresholds?.max_noise != null) gates.push("grainy images");
   return (
-    <section id="model" className="border-y border-line bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:py-20 lg:grid-cols-[1fr_1.3fr]">
-        <SectionHeading eyebrow="The model" title="Transparent about what it is">
-          Test-set results, calibration plots and the training recipe are published with each model
-          release, and every number can be reproduced from the repository.
+    <section id="model" className="border-y border-line bg-surface/70">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:py-24 lg:grid-cols-[1fr_1.4fr]">
+        <div className="max-w-md">
+          <Eyebrow>The model</Eyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+            Open about what it is.
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
+            Results, calibration plots, robustness tests and known limitations are published in the
+            model card, and every number can be reproduced from the repository.
+          </p>
           <a
-            href={`${REPO_URL}/releases`}
-            className="mt-4 block font-semibold text-accent underline-offset-4 hover:underline"
+            href={`${REPO_URL}/blob/main/docs/model_card.md`}
+            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent underline-offset-4 hover:underline"
           >
-            Read the model release notes
+            Read the model card <span aria-hidden="true">→</span>
           </a>
-        </SectionHeading>
+        </div>
         {meta ? (
           <dl>
             <Fact label="Version">
@@ -92,9 +103,7 @@ export function ModelFacts({ meta }) {
               input
             </Fact>
             <Fact label="Conditions recognised">{meta.class_names.join(", ")}</Fact>
-            <Fact label="Counted as malignant or pre-malignant">
-              {meta.malignant_classes.join(", ")}
-            </Fact>
+            <Fact label="Counted as cancer-related">{meta.malignant_classes.join(", ")}</Fact>
             <Fact label="Calibration">
               {meta.calibrated
                 ? "Temperature scaling, fitted on validation data"
@@ -110,6 +119,7 @@ export function ModelFacts({ meta }) {
                 "Provisional (not yet fitted on data)"
               )}
             </Fact>
+            {gates.length > 0 && <Fact label="Rejects">{gates.join(" and ")}</Fact>}
           </dl>
         ) : (
           <p className="self-center text-sm text-ink-faint">
@@ -122,34 +132,34 @@ export function ModelFacts({ meta }) {
 }
 
 const LIMITS = [
-  "Trained on dermoscopy (magnified, evenly lit) images. Ordinary phone photos are harder for it.",
-  "The training data under-represents darker skin tones, so accuracy there is not established.",
-  "It only knows the conditions listed above and cannot recognise anything else, such as rashes or infections.",
+  "It only learned from dermoscopy images (magnified, evenly lit), so ordinary phone photos are turned away.",
+  "Accuracy on darker skin tones is unknown: the training data does not record skin type.",
+  "It only knows the eight conditions above, not rashes, infections or anything else.",
 ];
 
 export function Privacy() {
   return (
-    <section id="privacy" className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-      <div className="grid gap-10 lg:grid-cols-2">
+    <section id="privacy" className="mx-auto max-w-6xl px-4 py-20 sm:py-24">
+      <div className="grid gap-12 lg:grid-cols-2">
         <div>
-          <SectionHeading eyebrow="Privacy" title="Your photo is never stored" />
-          <div className="mt-6 flex gap-4 rounded-2xl border border-line bg-surface p-5">
-            <LockIcon className="mt-0.5 h-6 w-6 shrink-0 text-accent" />
-            <p className="text-sm leading-relaxed text-ink-soft">
-              Images are analysed in memory and discarded as soon as the result is sent. They are
-              not written to disk, logged, or used for training. There are no accounts and no
-              tracking.
-            </p>
-          </div>
+          <Eyebrow>Privacy</Eyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">Your photo is never stored.</h2>
+          <p className="mt-4 flex gap-3 text-[15px] leading-relaxed text-ink-soft">
+            <LockIcon className="mt-1 h-5 w-5 shrink-0 text-accent" />
+            Images are analysed in memory and discarded as soon as the result is sent. They are not
+            written to disk, logged, or used for training. No accounts, no tracking.
+          </p>
         </div>
         <div>
-          <SectionHeading eyebrow="Limitations" title="What this tool cannot do" />
-          <ul className="mt-6 space-y-3">
+          <Eyebrow>Limitations</Eyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">What it cannot do.</h2>
+          <ul className="mt-4 space-y-3">
             {LIMITS.map((limit) => (
-              <li
-                key={limit}
-                className="rounded-2xl border border-line bg-surface p-4 text-sm leading-relaxed text-ink-soft"
-              >
+              <li key={limit} className="flex gap-3 text-[15px] leading-relaxed text-ink-soft">
+                <span
+                  aria-hidden="true"
+                  className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint"
+                />
                 {limit}
               </li>
             ))}

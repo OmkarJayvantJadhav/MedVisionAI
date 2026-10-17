@@ -31,8 +31,13 @@
   --color-alert-soft: #fbe7eb;
 
   --shadow-card: 0 1px 2px rgb(15 29 42 / 0.04), 0 8px 24px -12px rgb(15 29 42 / 0.12);
-  --animate-fade-up: fade-up 0.35s ease-out both;
+  --shadow-studio:
+    0 1px 1px rgb(15 29 42 / 0.03), 0 12px 32px -12px rgb(15 29 42 / 0.14),
+    0 40px 80px -40px rgb(11 110 117 / 0.18);
+  --color-glow: rgb(11 110 117 / 0.13);
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-scan: scan 1.6s ease-in-out infinite;
 
   @keyframes fade-up {
     from {
@@ -42,6 +47,20 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+  @keyframes scan {
+    0% {
+      top: 0%;
+      opacity: 0;
+    }
+    15%,
+    85% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
     }
   }
   @keyframes shimmer {
@@ -75,6 +94,10 @@
     --color-alert-soft: #331820;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    --shadow-studio:
+      0 1px 1px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6),
+      0 40px 90px -40px rgb(76 195 198 / 0.16);
+    --color-glow: rgb(76 195 198 / 0.12);
   }
 }
 
@@ -88,7 +111,10 @@ html {
 }
 
 body {
-  background: var(--color-canvas);
+  background:
+    radial-gradient(60rem 28rem at 50% -6rem, var(--color-glow), transparent 70%),
+    var(--color-canvas);
+  background-repeat: no-repeat;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -104,6 +130,20 @@ h3 {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
+}
+
+/* Staggered entrance for the hero and studio. */
+.reveal {
+  animation: var(--animate-fade-up);
+}
+.reveal-1 {
+  animation-delay: 60ms;
+}
+.reveal-2 {
+  animation-delay: 140ms;
+}
+.reveal-3 {
+  animation-delay: 220ms;
 }
 
 .skeleton {
