@@ -67,6 +67,36 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
     ):
         assert (report / name).is_file()
 
+    assert main([*args, "calibrate", "--model", str(model)]) == 0
+    calibration = tmp_path / "out" / "calibration" / "smoke"
+    fitted = json.loads((calibration / "calibration.json").read_text())
+    assert fitted["temperature"] > 0
+    assert set(fitted["splits"]) == {"validation", "test"}
+    assert (calibration / "reliability_validation_after.png").is_file()
+
+    export = tmp_path / "export"
+    assert (
+        main(
+            [
+                *args,
+                "export",
+                "--model",
+                str(model),
+                "--version",
+                "smoke-v0.0.1",
+                "--output",
+                str(export),
+                "--calibration",
+                str(calibration / "calibration.json"),
+            ]
+        )
+        == 0
+    )
+    meta = json.loads((export / "model_meta.json").read_text())
+    assert meta["calibration"] == {"temperature": fitted["temperature"], "fitted": True}
+    assert meta["thresholds"]["malignant"] == fitted["thresholds"]["malignant"]
+    assert meta["thresholds"]["fitted"] is True
+
     image = tmp_path / "data" / "Test" / "Melanoma" / "0.png"
     overlay = tmp_path / "overlay.png"
     assert (

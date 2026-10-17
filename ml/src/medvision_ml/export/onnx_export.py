@@ -163,6 +163,7 @@ def export_model(
     image_size: int,
     thresholds: Thresholds | None = None,
     temperature: float = 1.0,
+    calibration_fitted: bool = False,
     parity_tolerance: float = 1e-4,
     seed: int = 0,
 ) -> ExportResult:
@@ -219,7 +220,7 @@ def export_model(
             "resize": "bilinear",
         },
         "outputs": {"probabilities": PROBABILITIES, "feature_maps": FEATURE_MAPS},
-        "calibration": {"temperature": temperature, "fitted": temperature != 1.0},
+        "calibration": {"temperature": temperature, "fitted": calibration_fitted},
         "thresholds": asdict(thresholds or Thresholds()),
         "parity": {"max_probability_diff": max_diff, "tolerance": parity_tolerance},
         "files": {

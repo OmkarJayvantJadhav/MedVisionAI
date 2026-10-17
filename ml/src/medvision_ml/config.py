@@ -114,10 +114,19 @@ class EvaluationConfig:
         "Squamous Cell Carcinoma",
     )
     calibration_bins: int = 15
+    # The malignant-probability threshold is fitted so that this share of
+    # malignant validation images is flagged (plan §8.4).
+    target_malignant_recall: float = 0.90
+    # Images whose top probability falls below the fitted threshold are reported
+    # as low confidence; the rest reach this accuracy on validation.
+    target_confident_accuracy: float = 0.85
 
     def __post_init__(self) -> None:
         if self.calibration_bins < 1:
             raise ConfigError("evaluation.calibration_bins must be positive.")
+        for name in ("target_malignant_recall", "target_confident_accuracy"):
+            if not 0 < getattr(self, name) <= 1:
+                raise ConfigError(f"evaluation.{name} must be within (0, 1].")
 
 
 @dataclass(frozen=True)
