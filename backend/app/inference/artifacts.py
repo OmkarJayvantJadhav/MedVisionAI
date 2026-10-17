@@ -38,6 +38,7 @@ class Thresholds:
     min_sharpness: float
     fitted: bool
     ood_mahalanobis: float | None = None
+    max_noise: float | None = None
 
 
 def _optional_float(value: Any) -> float | None:
@@ -97,6 +98,7 @@ class ModelMeta:
                 min_sharpness=float(t["min_sharpness"]),
                 fitted=bool(t["fitted"]),
                 ood_mahalanobis=_optional_float(t.get("ood_mahalanobis")),
+                max_noise=_optional_float(t.get("max_noise")),
             )
             return cls(
                 model_version=str(raw["model_version"]),

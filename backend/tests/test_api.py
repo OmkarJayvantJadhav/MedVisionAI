@@ -54,6 +54,7 @@ def test_health_ready_and_meta(client: TestClient) -> None:
     assert meta["malignant_classes"] == ["Melanoma"]
     assert meta["thresholds"]["fitted"] is False and meta["calibrated"] is False
     assert meta["thresholds"]["ood_mahalanobis"] is None
+    assert meta["thresholds"]["max_noise"] is None
     assert meta["disclaimer"] == DISCLAIMER
 
 

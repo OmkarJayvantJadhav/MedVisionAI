@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from medvision_ml.calibration.ood import (
     OOD_STATS_FILE,
+    InputGates,
     acceptance_threshold,
     auroc,
     energy,
@@ -85,7 +86,9 @@ def test_read_ood(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="missing"):
         read_ood(report)
     np.savez(tmp_path / OOD_STATS_FILE, mean=np.zeros(2), precision=np.eye(2))
-    assert read_ood(report) == (1800.5, tmp_path / OOD_STATS_FILE)
+    assert read_ood(report) == InputGates(1800.5, tmp_path / OOD_STATS_FILE, None)
+    report.write_text(json.dumps({"threshold": 1800.5, "noise": {"max_noise": 2.4}}))
+    assert read_ood(report).max_noise == 2.4
     report.write_text(json.dumps({"threshold": -1}), encoding="utf-8")
     with pytest.raises(ValueError, match="threshold"):
         read_ood(report)

@@ -14,7 +14,7 @@ from app.inference.calibration import (
 )
 from app.inference.cam import blend, cam_from_features, encode_png, jet, render_heatmap
 from app.inference.decision import Reason, RiskFlag, Status, decide
-from app.inference.quality import QualityReport, assess, laplacian_variance
+from app.inference.quality import QualityReport, assess, laplacian_variance, noise_level
 
 from tests.conftest import textured
 
@@ -58,6 +58,28 @@ def test_quality_measures() -> None:
     assert laplacian_variance(flat[..., 0]) == 0.0
     report = assess(textured((100, 100, 100), size=(32, 32)).astype(np.float32))
     assert 90 < report.brightness < 110 and report.sharpness > 5.0
+    assert assess(flat).noise == 0.0 and report.noise > 5.0
+
+
+def test_noise_level_ignores_local_texture() -> None:
+    y, x = np.mgrid[0:128, 0:128]
+    gray = (x + y) * 1.0
+    assert noise_level(gray) == pytest.approx(0.0, abs=1e-9)
+    gray[:40, :40] += np.random.default_rng(1).normal(0, 40, (40, 40))
+    assert noise_level(gray) < 0.5
+    noisy = (x + y) + np.random.default_rng(2).normal(0, 10, (128, 128))
+    assert noise_level(noisy) == pytest.approx(7.3, rel=0.1)
+    assert noise_level(np.zeros((9, 9))) == 0.0
+
+
+def test_noise_gate_only_applies_once_fitted() -> None:
+    noisy = QualityReport(brightness=120.0, sharpness=50.0, noise=6.0)
+    confident = probs(0.9, 0.05, 0.05)
+    assert decide(confident, MALIGNANT, THRESHOLDS, noisy, -5.0).status is Status.OK
+    gated = Thresholds(**{**vars(THRESHOLDS), "max_noise": 2.5})
+    decision = decide(confident, MALIGNANT, gated, noisy, -5.0)
+    assert decision.status is Status.REJECTED and decision.reasons == (Reason.TOO_NOISY,)
+    assert decide(confident, MALIGNANT, gated, GOOD, -5.0).status is Status.OK
 
 
 def test_cam_follows_kernel_column_and_is_normalised() -> None:

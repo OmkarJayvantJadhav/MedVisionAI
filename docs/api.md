@@ -32,7 +32,10 @@ Interactive documentation is served at `/docs` (Swagger UI) and the schema at
 ```
 
 - `status`: `ok`, `low_confidence` (top probability below the threshold) or
-  `rejected` (too dark, too bright, too blurry, or out of distribution).
+  `rejected` (too dark, too bright, too blurry, too noisy, or out of
+  distribution). The noise check compares a sensor-noise estimate of the
+  resized image with `thresholds.max_noise` in `/meta` (`null` when the model
+  ships no fitted value).
   An image is out of distribution when the squared Mahalanobis distance of its
   pooled features from the training images exceeds
   `thresholds.ood_mahalanobis` in `/meta`. That value is `null` when the model

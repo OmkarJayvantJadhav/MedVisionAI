@@ -6,6 +6,10 @@ unlike the training data it is. The rejection threshold is the distance below
 which ``target_in_distribution_acceptance`` of the validation images fall, so it
 is fitted on lesion images only; a set of ordinary photos is used to report how
 many of them the gate rejects and to compare against logit-based scores.
+
+The same pass fits the noise gate: the threshold on the estimated sensor noise
+(:func:`medvision_ml.calibration.noise.noise_level`) that the same share of
+validation images stays below.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +27,7 @@ import tensorflow as tf
 from numpy.typing import NDArray
 
 from medvision_ml.calibration.fitting import calibrated_probabilities
+from medvision_ml.calibration.noise import noise_level
 from medvision_ml.config import ProjectConfig
 from medvision_ml.data.dataset import load_split
 from medvision_ml.models.builder import LOGITS_LAYER, POOL_LAYER
@@ -33,6 +39,16 @@ OOD_STATS_FILE = "ood_stats.npz"
 OOD_REPORT_FILE = "ood.json"
 
 FloatArray = NDArray[np.float64]
+Features = tuple[FloatArray, FloatArray, FloatArray]
+
+
+@dataclass(frozen=True)
+class InputGates:
+    """The fitted out-of-distribution and noise gates, as read from ``ood.json``."""
+
+    ood_threshold: float
+    stats_path: Path
+    max_noise: float | None
 
 
 def fit_gaussian(features: Any, shrinkage: float) -> tuple[FloatArray, FloatArray]:
@@ -105,26 +121,25 @@ def _feature_model(model: keras.Model) -> keras.Model:
     )
 
 
-def _collect(feature_model: keras.Model, batches: Iterable[Any]) -> tuple[FloatArray, FloatArray]:
+def _collect(feature_model: keras.Model, batches: Iterable[Any]) -> Features:
+    """Pooled features, logits and noise level of every image in ``batches``."""
     pooled: list[FloatArray] = []
     logits: list[FloatArray] = []
+    noise: list[FloatArray] = []
     for images in batches:
         batch_pooled, batch_logits = feature_model(images, training=False)
         pooled.append(np.asarray(batch_pooled, dtype=np.float64))
         logits.append(np.asarray(batch_logits, dtype=np.float64))
-    return np.concatenate(pooled), np.concatenate(logits)
+        noise.append(noise_level(np.asarray(images)))
+    return np.concatenate(pooled), np.concatenate(logits), np.concatenate(noise)
 
 
-def _split_features(
-    feature_model: keras.Model, split_dir: Path, config: ProjectConfig
-) -> tuple[FloatArray, FloatArray]:
+def _split_features(feature_model: keras.Model, split_dir: Path, config: ProjectConfig) -> Features:
     split = load_split(split_dir, config.data, shuffle=False, seed=config.seed)
     return _collect(feature_model, (images for images, _ in split.dataset))
 
 
-def _folder_features(
-    feature_model: keras.Model, folder: Path, config: ProjectConfig
-) -> tuple[FloatArray, FloatArray]:
+def _folder_features(feature_model: keras.Model, folder: Path, config: ProjectConfig) -> Features:
     size = config.data.image_size
     dataset = tf.keras.utils.image_dataset_from_directory(
         folder,
@@ -172,16 +187,21 @@ def fit_ood(
     out = output_dir or config.output_dir / "ood" / model_path.parent.name
     out.mkdir(parents=True, exist_ok=True)
 
-    train_pooled, _ = _split_features(feature_model, config.data_dir / "Train", config)
+    train_pooled, _, _ = _split_features(feature_model, config.data_dir / "Train", config)
     gaussian = fit_gaussian(train_pooled, targets.ood_shrinkage)
     sets = {
         "validation": _split_features(feature_model, config.data_dir / "Validation", config),
         "test": _split_features(feature_model, config.data_dir / "Test", config),
         "non_skin": _folder_features(feature_model, non_skin_dir, config),
     }
-    scores = {name: _scores(*features, gaussian, temperature) for name, features in sets.items()}
+    scores = {
+        name: _scores(pooled, logits, gaussian, temperature)
+        for name, (pooled, logits, _) in sets.items()
+    }
     acceptance = targets.target_in_distribution_acceptance
     threshold = acceptance_threshold(scores["validation"]["mahalanobis"], acceptance)
+    noise = {name: features[2] for name, features in sets.items()}
+    max_noise = acceptance_threshold(noise["validation"], acceptance)
 
     report: dict[str, Any] = {
         "model": str(model_path),
@@ -208,6 +228,12 @@ def fit_ood(
             for method in ("mahalanobis", "energy", "max_softmax")
         },
         "temperature": temperature,
+        "noise": {
+            "max_noise": max_noise,
+            "accepted": {
+                name: float(np.mean(noise[name] <= max_noise)) for name in ("validation", "test")
+            },
+        },
     }
     np.savez(
         out / OOD_STATS_FILE,
@@ -216,17 +242,22 @@ def fit_ood(
     )
     (out / OOD_REPORT_FILE).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     LOGGER.info(
-        "OOD gate: threshold %.1f, test accepted %.3f, non-skin rejected %.3f; %s",
+        "OOD gate: threshold %.1f, test accepted %.3f, non-skin rejected %.3f; "
+        "noise gate: max %.2f, test accepted %.3f; %s",
         threshold,
         report["splits"]["test"]["accepted"],
         report["non_skin"]["rejected"],
+        max_noise,
+        report["noise"]["accepted"]["test"],
         out,
     )
     return report
 
 
-def read_ood(path: Path) -> tuple[float, Path]:
-    """Read the threshold from ``ood.json`` and locate its ``ood_stats.npz``.
+def read_ood(path: Path) -> InputGates:
+    """Read the gate thresholds from ``ood.json`` and locate its ``ood_stats.npz``.
+
+    Reports written before the noise gate existed give ``max_noise=None``.
 
     Raises:
         ValueError: If the report has no positive threshold or the statistics
@@ -239,4 +270,5 @@ def read_ood(path: Path) -> tuple[float, Path]:
     stats = path.with_name(OOD_STATS_FILE)
     if not stats.is_file():
         raise ValueError(f"{stats} is missing.")
-    return float(threshold), stats
+    max_noise = data.get("noise", {}).get("max_noise")
+    return InputGates(float(threshold), stats, None if max_noise is None else float(max_noise))

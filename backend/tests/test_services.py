@@ -59,6 +59,7 @@ def test_low_confidence_lists_alternatives() -> None:
     [
         ((Reason.TOO_DARK, Reason.TOO_BLURRY), "too dark and the photo is out of focus"),
         ((Reason.OUT_OF_DISTRIBUTION,), "does not look like"),
+        ((Reason.TOO_NOISY,), "grainy"),
         ((), "could not be assessed"),
     ],
 )

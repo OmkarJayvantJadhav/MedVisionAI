@@ -59,7 +59,7 @@ def test_missed_malignant_counts_only_accepted_unflagged_images() -> None:
     )
     assert result["malignant_recall"] == pytest.approx(1 / 3)
     assert result["malignant_missed"] == pytest.approx(1 / 3)
-    assert result["accepted_by_ood_gate"] == pytest.approx(0.75)
+    assert result["accepted_by_gates"] == pytest.approx(0.75)
     assert result["malignant_precision"] == 1.0
     ungated = condition_metrics(
         logits, labels, CLASSES, ["Melanoma"], temperature=1.0, malignant_threshold=0.5

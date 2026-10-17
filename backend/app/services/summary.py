@@ -16,6 +16,7 @@ _REJECTION_HINTS = {
     Reason.TOO_DARK: "the photo is too dark",
     Reason.TOO_BRIGHT: "the photo is overexposed",
     Reason.TOO_BLURRY: "the photo is out of focus",
+    Reason.TOO_NOISY: "the photo is grainy",
     Reason.OUT_OF_DISTRIBUTION: (
         "it does not look like the dermoscopy images the model was trained on"
     ),

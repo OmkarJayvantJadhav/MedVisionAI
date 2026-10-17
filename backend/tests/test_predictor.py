@@ -188,3 +188,23 @@ def test_feature_gate_needs_its_statistics(tmp_path: Path) -> None:
     wrong = write_model_dir(tmp_path / "wrong", ood_threshold=20.0, ood_mean=np.zeros(5))
     with pytest.raises(ModelArtifactError, match="features"):
         load_artifacts(wrong)
+
+
+def test_noise_gate_rejects_grainy_photos(tmp_path: Path) -> None:
+    raw = json.loads((write_model_dir(tmp_path / "plain") / "model_meta.json").read_text())
+    gated = Predictor.from_directory(
+        write_model_dir(tmp_path / "gated", thresholds={**raw["thresholds"], "max_noise": 3.0})
+    )
+    assert gated.meta.thresholds.max_noise == 3.0
+    image = np.zeros((64, 64, 3), np.uint8)
+    image[:, :32] = (200, 60, 60)  # one sharp edge, otherwise smooth
+    image[:, 32:] = (150, 50, 50)
+    clean = io.BytesIO()
+    Image.fromarray(image).save(clean, format="PNG")
+    assert gated.predict(clean.getvalue()).status is Status.OK
+    grain = np.random.default_rng(0).normal(0, 30, image.shape)
+    noisy = io.BytesIO()
+    Image.fromarray(np.clip(image + grain, 0, 255).astype(np.uint8)).save(noisy, format="PNG")
+    result = gated.predict(noisy.getvalue())
+    assert result.status is Status.REJECTED
+    assert "too_noisy" in [reason.value for reason in result.reasons]

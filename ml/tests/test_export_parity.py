@@ -24,6 +24,9 @@ from app.inference.calibration import mahalanobis_distance, pooled_features  # n
 from app.inference.cam import cam_from_features as serving_cam  # noqa: E402
 from app.inference.predictor import Predictor  # noqa: E402
 from app.inference.preprocessing import decode_image, prepare_input  # noqa: E402
+from app.inference.quality import grayscale  # noqa: E402
+from app.inference.quality import noise_level as serving_noise  # noqa: E402
+from medvision_ml.calibration.noise import noise_level  # noqa: E402
 from medvision_ml.calibration.ood import fit_gaussian, mahalanobis  # noqa: E402
 from medvision_ml.config import AugmentationConfig, ModelConfig  # noqa: E402
 from medvision_ml.explainability.gradcam import gradcam  # noqa: E402
@@ -162,3 +165,15 @@ def test_serving_ood_distance_matches_training_pipeline(
         artifacts.ood_precision,
     )
     np.testing.assert_allclose(served, expected, rtol=1e-3)
+
+
+def test_serving_noise_estimate_matches_training_pipeline() -> None:
+    rng = np.random.default_rng(4)
+    batch = np.stack(
+        [
+            photo(seed, (SIZE, SIZE)) + rng.normal(0, std, (SIZE, SIZE, 3))
+            for seed, std in ((31, 0.0), (32, 5.0), (33, 20.0))
+        ]
+    )
+    served = [serving_noise(grayscale(image)) for image in batch]
+    np.testing.assert_allclose(served, noise_level(batch), rtol=1e-9)
