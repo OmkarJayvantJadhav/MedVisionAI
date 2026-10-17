@@ -70,6 +70,7 @@ Environment variables (or a `.env` file in `backend/`):
 | `MEDVISION_RATE_LIMIT_PER_MINUTE` | `30` | Per-client limit on `/api/`; `0` disables it |
 | `MEDVISION_TRUST_FORWARDED_FOR` | `false` | Take the client IP from `X-Forwarded-For` (only behind a trusted proxy) |
 | `MEDVISION_STATIC_DIR` | unset | Built frontend to serve at `/` |
+| `MEDVISION_INFERENCE_THREADS` | `0` | ONNX Runtime threads; `0` uses every core, `1` is fastest on a small CPU quota |
 | `MEDVISION_LOG_LEVEL` | `INFO` | Log level; logs are JSON lines on stdout |
 
 Uploaded images are processed in memory only and never logged. Requests whose

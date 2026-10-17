@@ -33,7 +33,9 @@ def _load_predictor(app: FastAPI, settings: Settings) -> None:
     limits = ImageLimits(max_bytes=settings.max_upload_bytes, max_side=settings.max_image_side)
     try:
         artifacts_predictor = Predictor.from_directory(
-            settings.model_dir, verify_checksums=settings.verify_checksums
+            settings.model_dir,
+            verify_checksums=settings.verify_checksums,
+            threads=settings.inference_threads,
         )
     except InferenceError as error:
         # Start anyway: /health stays up and /ready reports why the model is missing.

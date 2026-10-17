@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     trust_forwarded_for: bool = Field(
         default=False, description="Use X-Forwarded-For for client IPs (behind a proxy)."
     )
+    inference_threads: int = Field(
+        default=0,
+        ge=0,
+        description="ONNX Runtime threads; 0 uses every core, 1 suits a small CPU quota.",
+    )
     log_level: str = "INFO"
 
     @property

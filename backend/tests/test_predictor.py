@@ -149,3 +149,13 @@ def test_meta_round_trip_keeps_thresholds(model_dir: Path) -> None:
     meta = load_artifacts(model_dir).meta
     assert meta.thresholds.malignant == raw["thresholds"]["malignant"]
     assert meta.malignant_indices == (1,)
+
+
+def test_inference_threads_are_configurable(tmp_path: Path, image_bytes: ImageFactory) -> None:
+    model_dir = write_model_dir(tmp_path)
+    single = Predictor.from_directory(model_dir, threads=1)
+    default = Predictor.from_directory(model_dir)
+    assert single.session.get_session_options().intra_op_num_threads == 1
+    assert default.session.get_session_options().intra_op_num_threads == 0
+    data = image_bytes((230, 40, 40))
+    assert single.predict(data).top_k == default.predict(data).top_k

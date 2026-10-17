@@ -62,12 +62,28 @@ class Prediction:
 class Predictor:
     """Holds one ONNX Runtime session; thread-safe for concurrent ``predict`` calls."""
 
-    def __init__(self, artifacts: ModelArtifacts, limits: ImageLimits = DEFAULT_LIMITS) -> None:
+    def __init__(
+        self,
+        artifacts: ModelArtifacts,
+        limits: ImageLimits = DEFAULT_LIMITS,
+        *,
+        threads: int = 0,
+    ) -> None:
+        """Load the ONNX session.
+
+        Args:
+            artifacts: Verified model files and metadata.
+            limits: Upload limits applied before decoding.
+            threads: ONNX Runtime intra-op threads; 0 lets it use every visible
+                core. On a CPU quota smaller than the visible cores (free hosting),
+                1 avoids threads competing for the same slice of CPU.
+        """
         self.artifacts = artifacts
         self.meta = artifacts.meta
         self.limits = limits
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        options.intra_op_num_threads = threads
         try:
             self.session = ort.InferenceSession(
                 str(artifacts.onnx_path), options, providers=["CPUExecutionProvider"]
@@ -81,8 +97,10 @@ class Predictor:
             raise ModelArtifactError("ONNX graph inputs/outputs do not match the metadata.")
 
     @classmethod
-    def from_directory(cls, directory: Path, *, verify_checksums: bool = True) -> Predictor:
-        return cls(load_artifacts(directory, verify_checksums=verify_checksums))
+    def from_directory(
+        cls, directory: Path, *, verify_checksums: bool = True, threads: int = 0
+    ) -> Predictor:
+        return cls(load_artifacts(directory, verify_checksums=verify_checksums), threads=threads)
 
     def _run(self, batch: NDArray[np.float32]) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
         probabilities, feature_maps = self.session.run(
