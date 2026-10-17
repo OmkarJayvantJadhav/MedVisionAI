@@ -408,7 +408,7 @@ with green CI and an updated README section.
       `/predict`, `/explain`, p95 latency) (D43).
 - [x] `render.yaml`: Render deploys `main` after CI passes; the **Live site**
       workflow smoke-tests the public URL daily and on demand (D44).
-- [ ] Owner creates the Render service from the Blueprint and sets `LIVE_URL`
+- [x] Owner creates the Render service from the Blueprint and sets `LIVE_URL`
       (docs/deploy.md).
 - **Done when:** the public demo link works and is at the top of the README.
 
