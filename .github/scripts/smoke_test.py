@@ -4,7 +4,8 @@ Usage: python smoke_test.py BASE_URL IMAGE [--wait SECONDS]
 
 Waits for /api/v1/ready, checks the home page, sends IMAGE to /api/v1/predict
 and /api/v1/explain, checks that a generated non-skin image is rejected when the
-model ships an out-of-distribution gate, and reports p95 /predict latency over
+model ships an out-of-distribution gate, checks that a generated grainy image is
+rejected when it ships a noise check, and reports p95 /predict latency over
 20 warm requests. Exits non-zero on any failure. Uses only the standard library.
 """
 
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import statistics
 import struct
 import sys
@@ -20,6 +22,7 @@ import urllib.error
 import urllib.request
 import uuid
 import zlib
+from collections.abc import Callable
 from pathlib import Path
 
 LATENCY_BUDGET_MS = 150  # plan §11: p95 /predict, warning only
@@ -33,19 +36,17 @@ def get(url: str, timeout: float = 10) -> tuple[int, bytes]:
         return error.code, error.read()
 
 
-def stripes_png(size: int = 256) -> bytes:
-    """Coloured diagonal stripes: an image nothing like a dermoscopy photo."""
-    palette = [(230, 60, 40), (40, 90, 220), (250, 220, 40), (30, 160, 80)]
+def png(size: int, pixel: Callable[[int, int], tuple[int, ...]]) -> bytes:
+    """Encode an RGB image given as ``pixel(x, y) -> (r, g, b)``."""
     rows = b"".join(
-        b"\x00" + bytes(c for x in range(size) for c in palette[((x + y) // 16) % 4])
-        for y in range(size)
+        b"\x00" + bytes(c for x in range(size) for c in pixel(x, y)) for y in range(size)
     )
 
     def chunk(kind: bytes, data: bytes) -> bytes:
         crc = struct.pack(">I", zlib.crc32(kind + data))
         return struct.pack(">I", len(data)) + kind + data + crc
 
-    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)  # 8-bit RGB
     return (
         b"\x89PNG\r\n\x1a\n"
         + chunk(b"IHDR", header)
@@ -54,12 +55,30 @@ def stripes_png(size: int = 256) -> bytes:
     )
 
 
+def stripes_png(size: int = 256) -> bytes:
+    """Coloured diagonal stripes: an image nothing like a dermoscopy photo."""
+    palette = [(230, 60, 40), (40, 90, 220), (250, 220, 40), (30, 160, 80)]
+    return png(size, lambda x, y: palette[((x + y) // 16) % 4])
+
+
+def grainy_png(size: int = 256) -> bytes:
+    """A smooth skin-coloured gradient with heavy sensor-like noise."""
+    rng = random.Random(0)
+
+    def pixel(x: int, y: int) -> tuple[int, ...]:
+        grain = rng.gauss(0, 30)
+        base = (200 - y // 4, 150 - x // 6, 130 - x // 8)
+        return tuple(max(0, min(255, round(c + grain))) for c in base)
+
+    return png(size, pixel)
+
+
 def post_image(url: str, image: Path | bytes, timeout: float = 60) -> dict:
     boundary = uuid.uuid4().hex
     if isinstance(image, Path):
         name, kind, data = image.name, "image/jpeg", image.read_bytes()
     else:
-        name, kind, data = "stripes.png", "image/png", image
+        name, kind, data = "generated.png", "image/png", image
     body = (
         (
             f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
@@ -131,6 +150,14 @@ def main() -> None:
         )
     else:
         print("     no out-of-distribution gate in this model")
+    if json.loads(meta)["thresholds"].get("max_noise") is not None:
+        grainy = post_image(f"{base}/api/v1/predict", grainy_png())
+        check(
+            grainy["status"] == "rejected" and "too_noisy" in grainy["reasons"],
+            "grainy image rejected as too noisy",
+        )
+    else:
+        print("     no noise check in this model")
 
     timings = []
     for _ in range(20):

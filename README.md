@@ -25,11 +25,11 @@ roadmap, and design decisions.
   malignancy-risk flag
 - FastAPI backend served with ONNX Runtime and a React frontend (drag and
   drop or camera upload, risk badges, heatmap with adjustable opacity)
-- One-command Docker run, CI, and a public demo (planned)
+- One-command Docker run, CI, and a public demo
 
 ## Model
 
-Release [`model-v2.1.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.1.0)
+Release [`model-v2.2.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.2.0)
 (EfficientNetB0, ISIC 2019, CC BY-NC 4.0). Results on the held-out test split
 (2,527 images, lesion-grouped, no leakage), reproducible with
 `medvision-ml evaluate`, `medvision-ml calibrate` and `medvision-ml fit-ood`:
@@ -41,7 +41,7 @@ Release [`model-v2.1.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/relea
 | Melanoma recall (top-1) | 0.435 |
 | Malignant-group recall at the fitted threshold | 0.904 (precision 0.681) |
 | Calibration error (ECE) | 0.026 |
-| Test lesions accepted by the out-of-distribution check | 98.9% |
+| Test lesions accepted by the out-of-distribution and noise checks | 98.4% |
 | Everyday photos rejected (497 Open Images photos) | 99.6% |
 
 Top-1 melanoma recall is still low, so the app flags a possible malignancy
@@ -54,7 +54,7 @@ robustness to blur, noise, compression and rotation, results by sex, age and
 body site, and the known limitations. `make evaluate` regenerates all of it.
 
 ```bash
-make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.1.0
+make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.2.0
 ```
 
 ## Train the model
