@@ -107,11 +107,12 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
     )
     meta = json.loads((export / "model_meta.json").read_text())
     assert meta["thresholds"]["ood_mahalanobis"] == gate["threshold"]
+    assert meta["thresholds"]["max_noise"] == gate["noise"]["max_noise"]
 
     robust_args = ["robustness", "--model", str(model), *calibration_args]
     assert main([*args, *robust_args, "--ood", str(ood / "ood.json")]) == 0
     robust = json.loads((tmp_path / "out" / "robustness" / "smoke" / "robustness.json").read_text())
-    assert robust["ood_gate"] is True and "phone" in robust["conditions"]
+    assert robust["gates"] == {"ood": True, "noise": True} and "phone" in robust["conditions"]
     assert robust["conditions"]["clean"]["accuracy"] >= 0
 
     metadata = tmp_path / "metadata.csv"

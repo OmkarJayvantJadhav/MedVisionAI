@@ -4,7 +4,8 @@ Each corruption is applied to the test images after they are resized to the
 model input, then the model is scored with the shipped temperature and
 thresholds. Besides accuracy and macro F1 the report counts what matters for
 safety: how many malignant images are still flagged, and how many are missed
-silently (accepted by the out-of-distribution gate but not flagged).
+silently (accepted by the input gates, out-of-distribution and noise, but not
+flagged).
 """
 
 from __future__ import annotations
@@ -23,7 +24,8 @@ from numpy.typing import NDArray
 from PIL import Image
 
 from medvision_ml.calibration.fitting import calibrated_probabilities
-from medvision_ml.calibration.ood import mahalanobis
+from medvision_ml.calibration.noise import noise_level
+from medvision_ml.calibration.ood import InputGates, mahalanobis
 from medvision_ml.config import ProjectConfig
 from medvision_ml.data.dataset import load_split
 from medvision_ml.evaluation.metrics import (
@@ -144,8 +146,8 @@ def condition_metrics(
 ) -> dict[str, float]:
     """Score one condition with the shipped temperature and malignancy threshold.
 
-    ``accepted`` marks images the out-of-distribution gate lets through (all
-    of them when it is ``None``). A malignant image is *missed* when it is
+    ``accepted`` marks images the input gates let through (all of them when it
+    is ``None``). A malignant image is *missed* when it is
     accepted but not flagged; rejected images are not missed, because the user
     is told the photo cannot be assessed.
     """
@@ -164,7 +166,7 @@ def condition_metrics(
         "malignant_recall": float(flagged[is_malignant].mean()),
         "malignant_precision": float(is_malignant[flagged].mean()) if flagged.any() else 0.0,
         "malignant_missed": float(missed[is_malignant].mean()),
-        "accepted_by_ood_gate": float(passed.mean()),
+        "accepted_by_gates": float(passed.mean()),
     }
 
 
@@ -174,7 +176,7 @@ def robustness(
     *,
     temperature: float,
     malignant_threshold: float,
-    ood: tuple[float, Path] | None = None,
+    gates: InputGates | None = None,
     output_dir: Path | None = None,
     corruptions: tuple[Corruption, ...] = CORRUPTIONS,
     trust_legacy_lambda: bool = False,
@@ -182,19 +184,18 @@ def robustness(
     """Score the test split under every corruption and write ``robustness.json``.
 
     Args:
-        ood: The out-of-distribution threshold and ``ood_stats.npz`` path, from
-            ``read_ood``; without it every image counts as accepted.
+        gates: The out-of-distribution and noise gates from ``read_ood``;
+            without them every image counts as accepted.
     """
     class_names = load_class_names(model_path.with_name(f"{model_path.stem}_class_names.json"))
     model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
     scorer = keras.Model(
         model.input, [model.get_layer(POOL_LAYER).output, model.get_layer(LOGITS_LAYER).output]
     )
-    gate = None
-    if ood is not None:
-        threshold, stats_path = ood
-        with np.load(stats_path) as stats:
-            gate = (threshold, stats["mean"].astype(np.float64), stats["precision"])
+    gaussian = None
+    if gates is not None:
+        with np.load(gates.stats_path) as stats:
+            gaussian = (stats["mean"].astype(np.float64), stats["precision"])
     split = load_split(config.data_dir / "Test", config.data, shuffle=False, seed=config.seed)
     if split.class_names != class_names:
         raise ValueError(f"Dataset classes {split.class_names} differ from {class_names}")
@@ -208,11 +209,14 @@ def robustness(
         batch = np.asarray(images, dtype=np.float32)
         labels.append(np.asarray(batch_labels, dtype=np.int64))
         for corruption in corruptions:
-            pooled, logits = scorer(corruption.apply(batch, rng), training=False)
+            corrupted = corruption.apply(batch, rng)
+            pooled, logits = scorer(corrupted, training=False)
             collected[corruption.name]["logits"].append(np.asarray(logits, dtype=np.float64))
-            if gate is not None:
-                distance = mahalanobis(np.asarray(pooled), gate[1], gate[2])
-                collected[corruption.name]["accepted"].append(distance <= gate[0])
+            if gates is not None and gaussian is not None:
+                passed = mahalanobis(np.asarray(pooled), *gaussian) <= gates.ood_threshold
+                if gates.max_noise is not None:
+                    passed &= noise_level(corrupted) <= gates.max_noise
+                collected[corruption.name]["accepted"].append(passed)
     targets = np.concatenate(labels)
 
     conditions: dict[str, Any] = {}
@@ -227,7 +231,7 @@ def robustness(
                 list(config.evaluation.malignant_classes),
                 temperature=temperature,
                 malignant_threshold=malignant_threshold,
-                accepted=np.concatenate(parts["accepted"]) if gate is not None else None,
+                accepted=np.concatenate(parts["accepted"]) if gates is not None else None,
             ),
         }
     report: dict[str, Any] = {
@@ -236,7 +240,10 @@ def robustness(
         "n_samples": int(targets.size),
         "temperature": temperature,
         "malignant_threshold": malignant_threshold,
-        "ood_gate": gate is not None,
+        "gates": {
+            "ood": gates is not None,
+            "noise": gates is not None and gates.max_noise is not None,
+        },
         "conditions": conditions,
     }
     out = output_dir or config.output_dir / "robustness" / model_path.parent.name

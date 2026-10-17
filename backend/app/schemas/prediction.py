@@ -60,6 +60,11 @@ class ThresholdsOut(BaseModel):
         description="Squared Mahalanobis distance of the image features above which "
         "the image is rejected as unlike the training data; null when the gate is off",
     )
+    max_noise: float | None = Field(
+        default=None,
+        description="Estimated sensor noise (grey levels) above which the image is "
+        "rejected as too noisy; null when the check is off",
+    )
     fitted: bool
 
 

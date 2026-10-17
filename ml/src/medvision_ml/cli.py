@@ -207,7 +207,7 @@ def _robustness(args: argparse.Namespace, config: ProjectConfig) -> int:
         args.model,
         temperature=temperature,
         malignant_threshold=fitted["malignant"],
-        ood=read_ood(args.ood) if args.ood is not None else None,
+        gates=read_ood(args.ood) if args.ood is not None else None,
         output_dir=args.output,
         trust_legacy_lambda=args.trust_legacy_model,
     )
@@ -245,7 +245,10 @@ def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
     if args.calibration is not None:
         temperature, fitted = read_calibration(args.calibration)
     if args.ood is not None:
-        fitted["ood_mahalanobis"], ood_stats = read_ood(args.ood)
+        gates = read_ood(args.ood)
+        fitted["ood_mahalanobis"], ood_stats = gates.ood_threshold, gates.stats_path
+        if gates.max_noise is not None:
+            fitted["max_noise"] = gates.max_noise
     thresholds = Thresholds(**fitted, fitted=args.calibration is not None)
     model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
     class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))

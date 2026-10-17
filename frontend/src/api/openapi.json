@@ -349,6 +349,7 @@
           "too_dark",
           "too_bright",
           "too_blurry",
+          "too_noisy",
           "out_of_distribution",
           "low_confidence",
           "malignant_probability_above_threshold"
@@ -387,6 +388,18 @@
           "malignant": {
             "title": "Malignant",
             "type": "number"
+          },
+          "max_noise": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated sensor noise (grey levels) above which the image is rejected as too noisy; null when the check is off",
+            "title": "Max Noise"
           },
           "ood_energy": {
             "anyOf": [

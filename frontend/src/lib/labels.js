@@ -45,6 +45,7 @@ export const REASONS = {
   too_dark: "The photo is too dark.",
   too_bright: "The photo is overexposed.",
   too_blurry: "The photo is too blurry.",
+  too_noisy: "The photo is grainy or noisy.",
   out_of_distribution: "It does not look like the dermoscopy images the model was trained on.",
   low_confidence: "The model's top answer is below its confidence threshold.",
   malignant_probability_above_threshold:

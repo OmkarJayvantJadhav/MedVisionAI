@@ -40,6 +40,7 @@ class Reason(StrEnum):
     TOO_DARK = "too_dark"
     TOO_BRIGHT = "too_bright"
     TOO_BLURRY = "too_blurry"
+    TOO_NOISY = "too_noisy"
     OUT_OF_DISTRIBUTION = "out_of_distribution"
     LOW_CONFIDENCE = "low_confidence"
     MALIGNANT_PROBABILITY = "malignant_probability_above_threshold"
@@ -73,6 +74,8 @@ def decide(
         reasons.append(Reason.TOO_BRIGHT)
     if quality.sharpness < thresholds.min_sharpness:
         reasons.append(Reason.TOO_BLURRY)
+    if thresholds.max_noise is not None and quality.noise > thresholds.max_noise:
+        reasons.append(Reason.TOO_NOISY)
     gates = (
         (thresholds.ood_energy, energy),
         (thresholds.ood_mahalanobis, distance),

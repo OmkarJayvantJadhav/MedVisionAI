@@ -94,7 +94,8 @@ uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
 
 `calibrate` fits the temperature and the decision thresholds on the validation
 split and reports them on the test split. `fit-ood` fits the
-out-of-distribution gate (below). `export --calibration --ood` ships both in
+out-of-distribution gate (below) and the noise check, whose threshold lets the
+same 99% of validation images through. `export --calibration --ood` ships both in
 the serving files.
 
 `make evaluate MODEL=ml/artifacts/isic2019-effb0/model.keras METADATA=<path to

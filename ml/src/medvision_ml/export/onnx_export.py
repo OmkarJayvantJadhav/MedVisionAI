@@ -56,6 +56,7 @@ class Thresholds:
     malignant: float = 0.30
     ood_energy: float | None = None
     ood_mahalanobis: float | None = None
+    max_noise: float | None = None
     min_brightness: float = 20.0
     max_brightness: float = 235.0
     min_sharpness: float = 5.0
