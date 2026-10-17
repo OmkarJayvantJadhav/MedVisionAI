@@ -47,6 +47,7 @@ The sample is an ISIC 2019 test image the model never saw in training.</sub>
 - [Why this project](#why-this-project)
 - [What it does](#what-it-does)
 - [Screenshots](#screenshots)
+- [Using the app](#using-the-app)
 - [How it works](#how-it-works)
 - [Safety by design](#safety-by-design)
 - [Results](#results)
@@ -58,6 +59,7 @@ The sample is an ISIC 2019 test image the model never saw in training.</sub>
 - [Repository layout](#repository-layout)
 - [Quality gates](#quality-gates)
 - [Limitations](#limitations)
+- [Project status and roadmap](#project-status-and-roadmap)
 - [Documentation](#documentation)
 - [Acknowledgements and licence](#acknowledgements-and-licence)
 
@@ -115,6 +117,32 @@ MedVision AI treats the model as one part of a product that has to be **honest**
   <img src="docs/assets/screenshot-result-phone.jpg" alt="Phone layout: benign nevus sample with no malignancy flag, verdict shown first" width="300">
   <br><sub><b>Phone.</b> The verdict comes first: here a benign mole, with advice to see a doctor if it changes.</sub>
 </p>
+
+## Using the app
+
+1. **Add a photo.** Drop it on the card, browse, paste it with Ctrl+V, or use the camera on a
+   phone. No photo to hand? Pick one of the three samples (held-out ISIC 2019 test images).
+2. **Watch it being analysed.** The photo appears straight away, with a scanning line while
+   the three steps run: quality check, model, heatmap.
+3. **Read the verdict first.** One of four outcomes leads the result, always in this order of
+   priority:
+
+   | Verdict | When | What it tells you |
+   |---|---|---|
+   | **Possible malignancy** | Cancer-related classes add up past the fitted threshold | See a dermatologist and show them this spot |
+   | **Unsure** | Top confidence below the fitted threshold | Try a sharper, closer photo; see a doctor if the spot changes |
+   | **No malignancy flag** | Neither of the above | Nothing flagged, which does not rule anything out |
+   | **Photo not assessed** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that the model only knows dermoscopy images |
+
+4. **Look closer.** Below the verdict: the closest match, the top three with calibrated
+   percentages, and the cancer-related gauge with its threshold marker. On the photo itself,
+   the heatmap shows where the model looked; toggle it or change its opacity.
+5. **Technical details**, folded away, show the status, risk flag, summary, model version and
+   processing time.
+
+The interface is one card that changes state rather than a page of panels. It works in light
+and dark mode, by keyboard and with a screen reader, and on a phone, where the verdict comes
+before the photo.
 
 ## How it works
 
@@ -268,6 +296,9 @@ and `split` now refuses any group larger than 20 images.
   pooled features reached AUROC 0.9998.
 - **Free hosting.** Hugging Face Docker Spaces now need a paid plan, so the demo moved to
   Render's free tier from a Blueprint. A daily workflow smoke-tests the public URL.
+- **One card, not a dashboard.** The first interface showed the photo twice (preview and
+  heatmap) across a page of boxes. One card that turns from drop zone into photo-plus-result
+  keeps the answer in focus, and phones get the verdict above the photo.
 - **Typed contract without TypeScript.** The frontend is plain JavaScript by choice. The
   committed OpenAPI schema keeps it honest: frontend tests validate their mocks against it,
   and a backend test fails if it goes stale.
@@ -389,7 +420,7 @@ MedVisionAI/
 | Check | Where |
 |---|---|
 | ruff, mypy (strict), ESLint, Prettier | CI on every pull request |
-| **268 automated tests**: 132 ml, 102 backend, 34 frontend; backend coverage 98% | CI on every pull request |
+| **269 automated tests**: 132 ml, 102 backend, 35 frontend; backend coverage 98% | CI on every pull request |
 | Parity: ONNX vs Keras, NumPy heatmap vs TensorFlow Grad-CAM, served resize, out-of-distribution and noise scores | `ml` test suite |
 | Docker build, then a container smoke test: ready, home page, predict, explain, non-skin and grainy images rejected, p95 latency | CI on every pull request |
 | The same smoke test against the public URL | Daily and on demand ("Live site") |
@@ -405,6 +436,23 @@ MedVisionAI/
   on darker skin.
 - One dataset, no external or prospective validation. See the
   [model card](docs/model_card.md) for details.
+
+## Project status and roadmap
+
+| Area | Status |
+|---|---|
+| Leakage-free data pipeline, training, export | ✅ Done |
+| Inference API, safety gates, calibration | ✅ Done |
+| Web app, Docker image, CI, live demo | ✅ Done |
+| Responsible-AI evaluation and model card | ✅ Done |
+| Case-study documentation | ✅ Done |
+| Stronger model (larger backbone, higher resolution, rare-class handling) | Planned: targets macro F1 ≥ 0.72 and melanoma recall ≥ 0.70 |
+| Optional language-model summaries with cited sources and a template fallback | Planned, off by default |
+| External validation on phone photos and on darker skin tones | Open: needs licensed data with skin-type labels |
+
+Any new model must keep malignant recall at 90% or higher before it can replace the current
+one. Models are compared on that first, then on macro F1, then on calibration, never on
+accuracy alone.
 
 ## Documentation
 
