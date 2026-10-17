@@ -402,10 +402,14 @@ with green CI and an updated README section.
   linked from the README.
 
 ### Phase 7 — Ship
-- [ ] Multi-stage Dockerfile (non-root user, health check, image < 1 GB
-      target), `docker-compose.yml`.
-- [ ] CI builds the image; the `main` branch deploys to Hugging Face Spaces.
-- [ ] Smoke test against the deployed URL in CI.
+- [x] Multi-stage Dockerfile (non-root user, health check, image < 1 GB
+      target), `docker-compose.yml`: 829 MB, model checksum-verified at build.
+- [x] CI builds the image and smoke-tests the container (`/ready`, home page,
+      `/predict`, `/explain`, p95 latency); `deploy.yml` deploys `main` to
+      Hugging Face Spaces (D43).
+- [x] Smoke test against the deployed URL in CI (after the Space rebuilds).
+- [ ] Owner adds `HF_TOKEN` and `HF_SPACE` (docs/deploy.md) and runs the first
+      deploy.
 - **Done when:** the public demo link works and is at the top of the README.
 
 ### Phase 8 — Explanations with an LLM (optional, after Phase 7)
@@ -541,6 +545,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D40 | 2026-10-17 | `to_float32` loads the weights into the float32 rebuild through Keras's own weight loader (`save_weights` / `load_weights`) instead of `set_weights`. Corrects D36; numbers from evaluations and exports of mixed-precision models made before this fix are void | `set_weights` skipped the Normalization layer's load hook, so EfficientNet's input normalisation silently became the identity in every float32 rebuild. The first Kaggle model scored 0.695 validation accuracy in training but 0.646 after reload (test 0.636); with the fix the float32 rebuild matches the trained model to 1.5e-3 with identical top-1 predictions |
 | D41 | 2026-10-17 | `medvision-ml calibrate` fits on Validation and reports on Test: temperature by minimising NLL (golden-section search on log T, NumPy only); `τ_malignant` = highest summed malignant probability reaching 0.90 malignant recall; `τ` = lowest top-1 probability above which predictions are ≥ 85% correct, or 1.0 (everything low confidence) when no threshold reaches it. Targets live in `evaluation.target_*`; `export --calibration` writes them into `model_meta.json` with `fitted: true`. The OOD energy gate stays off until a licensed non-skin image set exists | §8.2–8.4. 85% makes an "ok" answer right far more often than the model overall (71%); falling back to 1.0 never lets a weak model look confident. SciPy is only a transitive dependency, so the 1-D search is written out instead of imported. First ISIC model: T = 1.08, test ECE 0.026, `τ_malignant` 0.193 → test malignant recall 0.904 at precision 0.681 (49% of images flagged), `τ` 0.625 → 59% of test images answered at 86.9% accuracy |
 | D42 | 2026-10-17 | Frontend redesign: the verdict (malignancy flag first, then unsure, then benign; rejected photos say what to fix) leads the result, followed by the closest match, top-3 bars, a combined-malignancy gauge with the fitted threshold marked, the heatmap and collapsible technical details. A photo is analysed as soon as it is chosen (file, drop, paste or camera); three ISIC 2019 test-split images are offered as samples; fonts are self-hosted (`@fontsource`); model facts are read from `/meta`, never hard-coded | one fewer click and a sample to try lower the barrier for a demo; leading with what to do next is the safety-relevant part of the answer; self-hosting fonts keeps a medical tool free of third-party requests; reading facts from `/meta` keeps the page true when the model changes (D33). Sample images are small (≤ 45 KB) CC BY-NC test images, credited in `docs/DATASETS.md` |
+| D43 | 2026-10-17 | One multi-stage image (`node:24-slim` build → `python:3.12-slim` runtime with uv-synced backend dependencies), model downloaded and checksum-verified at build time from the GitHub release, non-root uid 1000, port 7860, Docker health check on `/health`. CI builds it and runs `.github/scripts/smoke_test.py` against the container. `deploy.yml` uploads only tracked `backend/` and `frontend/` files plus a Space README with `huggingface_hub` after CI passes on `main`, waits for the Space to report a rebuild then `RUNNING`, and smoke-tests the live URL. On the Space the rate limit is 60 requests/min and `X-Forwarded-For` stays untrusted | uid 1000 and port 7860 are Hugging Face's defaults; `upload_folder` handles binary files (sample images) that a plain git push to a Space rejects; waiting for a rebuild stops the smoke test passing against the previous build. The app trusts the first `X-Forwarded-For` hop, which a client can forge, so behind the Space proxy the limit is a shared ceiling that protects the free CPU instead of a per-visitor limit. Measured locally: 829 MB image, `/predict` p95 28 ms |
 
 ---
 

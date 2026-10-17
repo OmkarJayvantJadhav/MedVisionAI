@@ -1,0 +1,12 @@
+# Only backend/ and frontend/ are needed to build the image.
+*
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/app/
+!frontend/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+**/__pycache__/
+**/*.test.js
+**/*.test.jsx

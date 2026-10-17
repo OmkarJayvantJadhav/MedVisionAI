@@ -1,0 +1,112 @@
+"""Smoke-test a running MedVision AI deployment (a local container or the live Space).
+
+Usage: python smoke_test.py BASE_URL IMAGE [--wait SECONDS]
+
+Waits for /api/v1/ready, checks the home page, sends IMAGE to /api/v1/predict
+and /api/v1/explain, and reports p95 /predict latency over 20 warm requests.
+Exits non-zero on any failure. Uses only the standard library.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics
+import sys
+import time
+import urllib.error
+import urllib.request
+import uuid
+from pathlib import Path
+
+LATENCY_BUDGET_MS = 150  # plan §11: p95 /predict, warning only
+
+
+def get(url: str, timeout: float = 10) -> tuple[int, bytes]:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return response.status, response.read()
+    except urllib.error.HTTPError as error:
+        return error.code, error.read()
+
+
+def post_image(url: str, image: Path, timeout: float = 60) -> dict:
+    boundary = uuid.uuid4().hex
+    body = (
+        (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
+            f'filename="{image.name}"\r\nContent-Type: image/jpeg\r\n\r\n'
+        ).encode()
+        + image.read_bytes()
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
+    request = urllib.request.Request(
+        url, data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def wait_until_ready(base: str, seconds: float) -> dict:
+    deadline = time.monotonic() + seconds
+    last = "no response"
+    while time.monotonic() < deadline:
+        try:
+            status, body = get(f"{base}/api/v1/ready")
+            if status == 200:
+                return json.loads(body)
+            last = f"HTTP {status}"
+        except (urllib.error.URLError, OSError) as error:
+            last = str(error)
+        time.sleep(10)
+    raise SystemExit(f"Not ready after {seconds:.0f} s ({last}).")
+
+
+def check(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(f"FAIL: {message}")
+    print(f"ok   {message}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("base_url")
+    parser.add_argument("image", type=Path)
+    parser.add_argument("--wait", type=float, default=120, help="seconds to wait for /ready")
+    args = parser.parse_args()
+    base = args.base_url.rstrip("/")
+
+    ready = wait_until_ready(base, args.wait)
+    check(ready.get("ready") is True, f"ready, model {ready.get('model_version')}")
+
+    status, page = get(f"{base}/")
+    check(status == 200 and b'<div id="root">' in page, "home page served")
+
+    prediction = post_image(f"{base}/api/v1/predict", args.image)
+    check(prediction["status"] in {"ok", "low_confidence", "rejected"}, "predict returns a status")
+    check(bool(prediction.get("disclaimer")), "predict includes the disclaimer")
+    check(prediction["calibrated"] and prediction["thresholds_fitted"], "model is calibrated")
+    print(
+        f"     {prediction['predicted_class']} {prediction['confidence']:.2f}, "
+        f"{prediction['risk_flag']}"
+    )
+
+    explanation = post_image(f"{base}/api/v1/explain", args.image)
+    check(len(explanation.get("heatmap_png", "")) > 100, "explain returns a heatmap")
+
+    timings = []
+    for _ in range(20):
+        start = time.perf_counter()
+        post_image(f"{base}/api/v1/predict", args.image)
+        timings.append((time.perf_counter() - start) * 1000)
+    p95 = statistics.quantiles(timings, n=20)[18]
+    print(f"     /predict p95 {p95:.0f} ms over {len(timings)} requests")
+    if p95 > LATENCY_BUDGET_MS:
+        print(f"::warning::/predict p95 {p95:.0f} ms is above the {LATENCY_BUDGET_MS} ms budget")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (urllib.error.URLError, KeyError, json.JSONDecodeError) as error:
+        sys.exit(f"FAIL: {error}")
