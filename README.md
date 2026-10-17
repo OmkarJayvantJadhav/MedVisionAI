@@ -20,6 +20,29 @@ focused on, and a clear safety status.
   drop or camera upload, risk badges, heatmap with adjustable opacity)
 - One-command Docker run, CI, and a public demo (planned)
 
+## Model
+
+Release [`model-v2.0.0`](https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/tag/model-v2.0.0)
+(EfficientNetB0, ISIC 2019, CC BY-NC 4.0). Results on the held-out test split
+(2,527 images, lesion-grouped, no leakage), reproducible with
+`medvision-ml evaluate` and `medvision-ml calibrate`:
+
+| Metric | Value |
+|---|---|
+| Accuracy (top-1) | 0.708 |
+| Macro F1 | 0.508 |
+| Melanoma recall (top-1) | 0.435 |
+| Malignant-group recall at the fitted threshold | 0.904 (precision 0.681) |
+| Calibration error (ECE) | 0.026 |
+
+Top-1 melanoma recall is still low, so the app flags a possible malignancy
+from the summed probability of all malignant classes, with a threshold fitted
+to catch 90% of malignant validation images.
+
+```bash
+make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.0.0
+```
+
 ## Train the model
 
 Training runs through the `medvision-ml` command line: prepare and split

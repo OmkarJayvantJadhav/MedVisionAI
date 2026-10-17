@@ -349,10 +349,10 @@ with green CI and an updated README section.
 - [x] Kaggle notebook (`notebooks/train_kaggle.ipynb`, D39) that downloads,
       prepares, splits, leakage-checks, trains, evaluates and exports; dry-run
       end to end on a 320-image ISIC 2019 subset.
-- [ ] Train on the ISIC 2019 splits on Kaggle (done by the owner), then
-      publish release `model-v2.0.0` under CC BY-NC 4.0 from the exported
-      files. The weights no longer derive from the prototype, so only the
-      dataset licence applies to them.
+- [x] Train on the ISIC 2019 splits on Kaggle, then publish release
+      `model-v2.0.0` under CC BY-NC 4.0 from the exported, calibrated files
+      (re-exported after the D40 fix). `make download-model` fetches and
+      verifies it.
 - **Done when:** a CLI `python -m app.inference.cli image.jpg` prints a
   prediction with no TensorFlow installed. ✅ Verified with the exported
   prototype model (16 ms per prediction, 74 ms with explanation, CPU).
