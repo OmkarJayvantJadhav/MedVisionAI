@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -121,7 +122,7 @@ def test_missing_files_are_detected(model_dir: Path) -> None:
         {"class_names": [*CLASSES, "Extra"]},
     ],
 )
-def test_inconsistent_metadata_is_rejected(tmp_path: Path, overrides: dict[str, object]) -> None:
+def test_inconsistent_metadata_is_rejected(tmp_path: Path, overrides: dict[str, Any]) -> None:
     directory = write_model_dir(tmp_path / "m", **overrides)
     with pytest.raises(ModelArtifactError):
         Predictor.from_directory(directory)
