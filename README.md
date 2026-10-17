@@ -93,30 +93,7 @@ MedVision AI treats the model as one part of a product that has to be **honest**
 | **Respects privacy** | Images are processed in memory and never stored or logged; no accounts, no tracking, self-hosted fonts |
 | **Works anywhere** | Drag and drop, paste, file picker or phone camera; light and dark themes; keyboard accessible |
 
-## Screenshots
 
-<p align="center">
-  <img src="docs/assets/screenshot-home.jpg" alt="Home page: centred hero above one card with a drop zone and three sample images" width="860">
-  <br><sub><b>Start.</b> One card: drop, browse, paste or use the camera, or try a sample.</sub>
-</p>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-result-light.jpg" alt="Light theme: melanoma sample with a malignancy warning, top matches and heatmap">
-      <p align="center"><sub><b>Light.</b> A melanoma sample: the warning leads, and the heatmap sits on the photo.</sub></p>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-result-dark.jpg" alt="Dark theme: basal cell carcinoma sample with a malignancy warning and heatmap">
-      <p align="center"><sub><b>Dark.</b> A basal cell carcinoma sample: the gauge marks the fitted threshold.</sub></p>
-    </td>
-  </tr>
-</table>
-
-<p align="center">
-  <img src="docs/assets/screenshot-result-phone.jpg" alt="Phone layout: benign nevus sample with no malignancy flag, verdict shown first" width="300">
-  <br><sub><b>Phone.</b> The verdict comes first: here a benign mole, with advice to see a doctor if it changes.</sub>
-</p>
 
 ## Using the app
 
