@@ -39,6 +39,25 @@ def test_split_then_check_leakage(
     assert "Leakage found" in capsys.readouterr().err
 
 
+def test_split_refuses_an_oversized_near_duplicate_group(
+    tmp_path: Path,
+    make_image: MakeImage,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression (D37): a hash that matches unrelated images must stop the
+    # split instead of quietly moving them all into one split.
+    monkeypatch.setattr("medvision_ml.data.leakage.MAX_NEAR_DUPLICATE_GROUP", 2)
+    config = make_config(tmp_path)
+    for i, size in enumerate((96, 80, 64)):
+        make_image(tmp_path / "raw" / "A" / f"copy{i}.png", seed=1, size=size)
+    make_image(tmp_path / "raw" / "B" / "other.png", seed=2)
+
+    assert main(["--config", str(config), "split", "--source", str(tmp_path / "raw")]) == 1
+    assert "near-duplicate group has 3 images (limit 2)" in capsys.readouterr().err
+    assert not (tmp_path / "data").exists()
+
+
 def test_errors_return_exit_code_2(tmp_path: Path) -> None:
     config = make_config(tmp_path)
     assert (

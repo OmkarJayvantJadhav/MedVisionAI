@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import sys
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -52,7 +53,12 @@ def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.data.groups import group_keys, merge_groups, write_groups
     from medvision_ml.data.images import scan_class_dataset, scan_split_dataset
     from medvision_ml.data.isic2019 import GROUPS_FILE
-    from medvision_ml.data.leakage import check_leakage, fingerprint_all, group_duplicates
+    from medvision_ml.data.leakage import (
+        MAX_NEAR_DUPLICATE_GROUP,
+        check_leakage,
+        fingerprint_all,
+        group_duplicates,
+    )
     from medvision_ml.data.splitting import assign_splits, materialise_splits
 
     records = scan_class_dataset(args.source)
@@ -66,10 +72,16 @@ def _split(args: argparse.Namespace, config: ProjectConfig) -> int:
     report_path.write_text(json.dumps(vars(removed), indent=2), encoding="utf-8")
     readable = [f.record for f in fingerprints]
     known = _groups_for(args.groups, args.source) or {}
-    groups = merge_groups(
-        group_duplicates(fingerprints, config.data.near_duplicate_max_distance),
-        group_keys(readable, known),
-    )
+    near_groups = group_duplicates(fingerprints, config.data.near_duplicate_max_distance)
+    largest = max(Counter(near_groups).values(), default=0)
+    if largest > MAX_NEAR_DUPLICATE_GROUP:
+        print(
+            f"A near-duplicate group has {largest} images (limit {MAX_NEAR_DUPLICATE_GROUP}): "
+            "the hash is matching unrelated images. Lower data.near_duplicate_max_distance.",
+            file=sys.stderr,
+        )
+        return 1
+    groups = merge_groups(near_groups, group_keys(readable, known))
     assignments = assign_splits(readable, groups, config.data.split_ratios, config.seed)
     destination = args.dest or config.data_dir
     counts = materialise_splits(assignments, destination, overwrite=args.overwrite)

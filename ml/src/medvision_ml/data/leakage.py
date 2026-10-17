@@ -23,10 +23,15 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 
 from medvision_ml.data.groups import groups_across_splits
-from medvision_ml.data.hashing import dhash, hamming_distances, md5_file
+from medvision_ml.data.hashing import dhash, hamming_distances, hash_array, md5_file
 from medvision_ml.data.images import ImageRecord
 
 LOGGER = logging.getLogger(__name__)
+
+# Copies of one photo come in small groups (at most 3 on ISIC 2019). A larger
+# near-duplicate group means the hash is matching unrelated images, which
+# would push whole image sources into one split (D37).
+MAX_NEAR_DUPLICATE_GROUP = 20
 
 
 @dataclass(frozen=True)
@@ -168,7 +173,7 @@ def find_near_duplicates(
     Exact byte-for-byte duplicates are excluded; :func:`find_exact_duplicates`
     reports those.
     """
-    hashes = np.fromiter((f.dhash for f in fingerprints), dtype=np.uint64, count=len(fingerprints))
+    hashes = hash_array(f.dhash for f in fingerprints)
     splits = np.array([f.record.split for f in fingerprints])
     pairs: list[DuplicatePair] = []
     for i, item in enumerate(fingerprints[:-1]):
@@ -228,7 +233,7 @@ def group_duplicates(fingerprints: Sequence[Fingerprint], max_distance: int) -> 
             i = parent[i]
         return i
 
-    hashes = np.fromiter((f.dhash for f in fingerprints), dtype=np.uint64, count=len(fingerprints))
+    hashes = hash_array(f.dhash for f in fingerprints)
     for i, item in enumerate(fingerprints[:-1]):
         distances = hamming_distances(item.dhash, hashes[i + 1 :])
         for offset in np.flatnonzero(distances <= max_distance):

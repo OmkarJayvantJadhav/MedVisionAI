@@ -13,7 +13,7 @@ def test_clean_dataset_has_no_leakage(tmp_path: Path, make_image: MakeImage) -> 
     for i, split in enumerate(("Train", "Validation", "Test")):
         make_image(tmp_path / split / "A" / f"{i}.png", seed=i)
         make_image(tmp_path / split / "B" / f"{i}.png", seed=10 + i)
-    report = check_leakage(scan_split_dataset(tmp_path), max_distance=4)
+    report = check_leakage(scan_split_dataset(tmp_path), max_distance=16)
     assert not report.has_leakage
     assert report.summary()["total_images"] == 6
 
@@ -35,7 +35,7 @@ def test_reports_exact_near_within_and_label_conflicts(
     make_image(tmp_path / "Test" / "B" / "unique.png", seed=4)
     (tmp_path / "Test" / "B" / "broken.png").write_bytes(b"not an image")
 
-    report = check_leakage(scan_split_dataset(tmp_path), max_distance=4)
+    report = check_leakage(scan_split_dataset(tmp_path), max_distance=16)
 
     assert report.has_leakage
     assert [(p.first_split, p.second_split) for p in report.exact_cross_split] == [

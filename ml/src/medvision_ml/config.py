@@ -44,7 +44,9 @@ class DataConfig:
     cache_dir: Path | None = None
     shuffle_buffer_size: int = 1024
     split_ratios: tuple[float, float, float] = (0.80, 0.10, 0.10)
-    near_duplicate_max_distance: int = 4
+    # Hamming distance out of 256 bits; copies of one lesion photo measured up
+    # to 18 on ISIC 2019, unrelated lesions from 19 (D37).
+    near_duplicate_max_distance: int = 16
 
     def __post_init__(self) -> None:
         if self.image_size < 32:
@@ -55,8 +57,8 @@ class DataConfig:
             raise ConfigError("data.split_ratios must be three non-negative numbers.")
         if abs(sum(self.split_ratios) - 1.0) > 1e-6:
             raise ConfigError("data.split_ratios must sum to 1.")
-        if not 0 <= self.near_duplicate_max_distance <= 64:
-            raise ConfigError("data.near_duplicate_max_distance must be within [0, 64].")
+        if not 0 <= self.near_duplicate_max_distance <= 256:
+            raise ConfigError("data.near_duplicate_max_distance must be within [0, 256].")
 
 
 @dataclass(frozen=True)
