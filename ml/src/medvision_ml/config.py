@@ -40,7 +40,7 @@ class DataConfig:
     batch_size: int = 32
     cache: bool = True
     # Cache decoded images in files under this folder instead of in memory.
-    # ISIC 2019 needs about 12 GB, more than a free Colab VM's RAM.
+    # ISIC 2019 needs about 12 GB, more than many training machines' RAM.
     cache_dir: Path | None = None
     shuffle_buffer_size: int = 1024
     split_ratios: tuple[float, float, float] = (0.80, 0.10, 0.10)

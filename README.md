@@ -22,12 +22,10 @@ focused on, and a clear safety status.
 
 ## Train the model
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/OmkarJayvantJadhav/MedVisionAI/blob/main/notebooks/train_colab.ipynb)
-
-The notebook trains on ISIC 2019 with a free Colab GPU, checks the splits for
-leakage, evaluates on the held-out test set and exports the serving files to
-Google Drive. See [`docs/DATASETS.md`](docs/DATASETS.md) for the data and its
-licence.
+Training runs through the `medvision-ml` command line: prepare and split
+ISIC 2019, check the splits for leakage, train, evaluate on the held-out test
+set and export the serving files. See [`docs/DATASETS.md`](docs/DATASETS.md)
+for the steps, the data and its licence.
 
 ## Development
 
@@ -50,7 +48,6 @@ make help    # list all targets
 | `frontend/` | React (JavaScript) + Vite + Tailwind web app |
 | `models/` | downloaded model artifacts (not committed) |
 | `docs/` | project plan, dataset sources and licences, design documents |
-| `notebooks/` | Colab notebook that trains, evaluates and exports the model |
 
 ## Disclaimer
 

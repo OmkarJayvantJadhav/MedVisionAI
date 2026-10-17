@@ -2,7 +2,7 @@
 
 Shuffling batches kept the same images together every epoch and made the
 shuffle buffer hold ~1,000 batches (about 12 GB for ISIC 2019), which ran a
-free Colab VM out of memory.
+training machine with 12 GB of RAM out of memory.
 """
 
 from __future__ import annotations

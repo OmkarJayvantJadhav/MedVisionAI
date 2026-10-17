@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-def test_plots_work_under_colab_backend_setting(tmp_path: Path) -> None:
+def test_plots_work_under_notebook_backend_setting(tmp_path: Path) -> None:
     env = {**os.environ, "MPLBACKEND": "module://matplotlib_inline.backend_inline"}
     code = (
         "from pathlib import Path\n"
