@@ -49,6 +49,21 @@ flowchart TB
 | `app/inference/cam.py` | Class activation map, colour map, overlay, fast PNG encoding |
 | `app/services/summary.py` | Plain-language summary behind a `SummaryProvider` interface (template today) |
 
+### Frontend
+
+A React (JavaScript) single-page app built by Vite and served as static files by the same
+FastAPI process. Tailwind CSS v4 provides the design tokens, with light and dark themes.
+
+| Module | Responsibility |
+|---|---|
+| `src/App.jsx` | State machine of the studio card: empty, analysing, result or error. Analyses as soon as a photo is chosen, dropped or pasted |
+| `src/components/UploadPanel.jsx` | Drop zone, file picker, phone camera and the three samples |
+| `src/components/HeatmapViewer.jsx` | The user's photo, the scanning line while busy, then the heatmap overlay with toggle and opacity |
+| `src/components/ResultCard.jsx` | Verdict, closest match, top 3, cancer-related gauge with the threshold marker, technical details, disclaimer |
+| `src/components/InfoSections.jsx` | How it works, model facts read from `/meta`, privacy and limitations |
+| `src/lib/labels.js` | Verdict priority (malignancy flag, then unsure, then benign) and the wording for every reason and error |
+| `src/api/client.js` | `fetch` wrapper; tests check mock responses against the committed `openapi.json` |
+
 ### One request
 
 ```mermaid
