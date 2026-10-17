@@ -254,3 +254,9 @@ def test_access_log_is_json_without_image_content(
     assert access and access[-1]["path"] == "/api/v1/predict" and access[-1]["status"] == 200
     assert isinstance(access[-1]["latency_ms"], float)
     assert all("PNG" not in json.dumps(line) for line in lines)
+
+
+def test_inference_threads_setting_reaches_the_model(model_dir: Path) -> None:
+    with make_client(model_dir=model_dir, inference_threads=1) as test_client:
+        predictor = test_client.app.state.predictor  # type: ignore[attr-defined]
+        assert predictor.session.get_session_options().intra_op_num_threads == 1
