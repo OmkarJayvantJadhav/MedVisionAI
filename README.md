@@ -49,6 +49,10 @@ from the summed probability of all malignant classes, with a threshold fitted
 to catch 90% of malignant validation images. Photos that do not resemble the
 dermoscopy training images are rejected instead of classified.
 
+The [model card](docs/model_card.md) has per-class results, calibration plots,
+robustness to blur, noise, compression and rotation, results by sex, age and
+body site, and the known limitations. `make evaluate` regenerates all of it.
+
 ```bash
 make download-model BASE_URL=https://github.com/OmkarJayvantJadhav/MedVisionAI/releases/download/model-v2.1.0
 ```
