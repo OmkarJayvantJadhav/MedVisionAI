@@ -1,6 +1,6 @@
 PACKAGES := ml backend
 
-.PHONY: help setup lint format typecheck test check clean download-model predict run frontend-setup frontend-check frontend-dev api-schema
+.PHONY: help setup lint format typecheck test check clean download-model predict run frontend-setup frontend-check frontend-dev api-schema docker-build docker-run smoke
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -43,6 +43,15 @@ frontend-dev: ## Start the frontend dev server on http://localhost:5173 (run `ma
 
 api-schema: ## Regenerate frontend/src/api/openapi.json from the backend
 	cd backend && uv run python -m app.openapi
+
+docker-build: ## Build the app image (frontend + API + verified model)
+	docker build -t medvisionai:local .
+
+docker-run: ## Run the app image on http://localhost:7860
+	docker run --rm -p 7860:7860 medvisionai:local
+
+smoke: ## Smoke-test a running app: make smoke URL=http://localhost:7860
+	python3 .github/scripts/smoke_test.py $(or $(URL),http://localhost:7860) frontend/public/samples/melanoma.jpg
 
 clean: ## Remove caches and build outputs
 	find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .mypy_cache -o -name .ruff_cache \) -prune -exec rm -rf {} +

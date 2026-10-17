@@ -1,0 +1,63 @@
+name: Deploy
+
+# Deploys main to the Hugging Face Space after CI passes, then smoke-tests the
+# live site. Needs the HF_TOKEN secret (a write token) and the HF_SPACE variable
+# (OWNER/SPACE); without them the job only prints how to enable it.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  space:
+    name: Hugging Face Space
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE: ${{ vars.HF_SPACE }}
+      GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Check configuration
+        id: config
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
+            echo "::notice::Deployment skipped: add the HF_TOKEN secret and the HF_SPACE variable (see docs/deploy.md)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.GITHUB_SHA }}
+
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Deploy
+        id: deploy
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          pip install --quiet huggingface_hub==2.1.1
+          python .github/scripts/deploy_space.py "$HF_SPACE"
+
+      - name: Smoke test the live site
+        if: steps.config.outputs.enabled == 'true'
+        run: python .github/scripts/smoke_test.py "${{ steps.deploy.outputs.url }}" frontend/public/samples/melanoma.jpg --wait 600

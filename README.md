@@ -54,6 +54,15 @@ for the steps, the data and its licence.
 on a free Kaggle GPU in the background (*Save & Run All*), so no browser tab
 has to stay open.
 
+## Run with Docker
+
+```bash
+docker compose up --build    # then open http://localhost:7860
+```
+
+The image bundles the website, the API and the checksum-verified model. See
+[`docs/deploy.md`](docs/deploy.md) for the Hugging Face Spaces deployment.
+
 ## Development
 
 Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. Python 3.11 is
