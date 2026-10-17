@@ -401,17 +401,6 @@
             "description": "Estimated sensor noise (grey levels) above which the image is rejected as too noisy; null when the check is off",
             "title": "Max Noise"
           },
-          "ood_energy": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ood Energy"
-          },
           "ood_mahalanobis": {
             "anyOf": [
               {
@@ -428,7 +417,6 @@
         "required": [
           "low_confidence",
           "malignant",
-          "ood_energy",
           "fitted"
         ],
         "title": "ThresholdsOut",

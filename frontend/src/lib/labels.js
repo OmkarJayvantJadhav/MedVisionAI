@@ -4,17 +4,14 @@ export const STATUS = {
   ok: {
     label: "Assessment complete",
     tone: "positive",
-    detail: "The model produced a confident result.",
   },
   low_confidence: {
     label: "Low confidence",
     tone: "caution",
-    detail: "The model is unsure; treat the result with extra care.",
   },
   rejected: {
     label: "Image not usable",
     tone: "neutral",
-    detail: "The photo could not be assessed. Try a sharper, well-lit close-up.",
   },
 };
 
@@ -100,7 +97,7 @@ export function verdict(result) {
 const FALLBACK = { label: "Unknown", tone: "neutral" };
 
 export function statusInfo(status) {
-  return STATUS[status] ?? { ...FALLBACK, detail: "" };
+  return STATUS[status] ?? FALLBACK;
 }
 
 export function riskInfo(risk) {

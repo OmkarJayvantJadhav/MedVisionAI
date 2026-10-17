@@ -420,7 +420,7 @@ MedVisionAI/
 | Check | Where |
 |---|---|
 | ruff, mypy (strict), ESLint, Prettier | CI on every pull request |
-| **269 automated tests**: 132 ml, 102 backend, 35 frontend; backend coverage 98% | CI on every pull request |
+| **266 automated tests**: 131 ml, 100 backend, 35 frontend; backend coverage 98% | CI on every pull request |
 | Parity: ONNX vs Keras, NumPy heatmap vs TensorFlow Grad-CAM, served resize, out-of-distribution and noise scores | `ml` test suite |
 | Docker build, then a container smoke test: ready, home page, predict, explain, non-skin and grainy images rejected, p95 latency | CI on every pull request |
 | The same smoke test against the public URL | Daily and on demand ("Live site") |

@@ -1,4 +1,4 @@
-"""Smoke-test a running MedVision AI deployment (a local container or the live Space).
+"""Smoke-test a running MedVision AI deployment (a local container or the live site).
 
 Usage: python smoke_test.py BASE_URL IMAGE [--wait SECONDS]
 

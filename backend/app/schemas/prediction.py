@@ -54,7 +54,6 @@ class ReadyResponse(BaseModel):
 class ThresholdsOut(BaseModel):
     low_confidence: float
     malignant: float
-    ood_energy: float | None
     ood_mahalanobis: float | None = Field(
         default=None,
         description="Squared Mahalanobis distance of the image features above which "

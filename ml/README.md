@@ -1,7 +1,9 @@
 # medvision-ml
 
 Offline pipeline for the skin-lesion classifier: dataset checks and splitting,
-two-stage transfer-learning training, evaluation reports and Grad-CAM.
+two-stage transfer-learning training, evaluation, calibration, the
+out-of-distribution and noise gates, robustness and subgroup reports, Grad-CAM
+and ONNX export.
 TensorFlow is used only here; the serving backend never imports it.
 
 ## Setup
@@ -42,7 +44,14 @@ is not part of the repository.
 | `medvision-ml train [--run-name NAME]` | Stage 1 trains the head on a frozen ImageNet backbone; stage 2 fine-tunes the top backbone layers (batch-norm stays frozen). Uses square-root class weights by default. |
 | `medvision-ml evaluate --model PATH` | Writes `metrics.json`, a classification report, per-image predictions, a confusion matrix and a reliability diagram. Metrics include the malignant-group recall and calibration error used for model selection. |
 | `medvision-ml calibrate --model PATH` | Fits the temperature and the low-confidence and malignant thresholds on the validation split, reports them on the test split, and writes `calibration.json` with reliability diagrams before and after. |
+| `medvision-ml fetch-non-skin --dest DIR` | Downloads 500 attributed CC BY 2.0 everyday photos (Open Images) for the out-of-distribution report. |
+| `medvision-ml fit-ood --model PATH --non-skin DIR` | Fits the feature Gaussian on Train and the out-of-distribution and noise thresholds on Validation; writes `ood.json` and `ood_stats.npz`. |
+| `medvision-ml robustness --model PATH --calibration FILE` | Scores the test split under 12 image corruptions with the shipped rules and counts silent misses. |
+| `medvision-ml subgroups --model PATH --calibration FILE --metadata CSV` | Scores the test split by sex, age band and body site. |
+| `medvision-ml export --model PATH --version V` | Writes `model.onnx`, `head_weights.npz`, `model_meta.json` (and `ood_stats.npz` with `--ood`), after checking ONNX against Keras. |
 | `medvision-ml gradcam --model PATH --image IMG` | Saves a Grad-CAM overlay for one image. |
+
+`make evaluate` (repository root) runs the reporting commands in order.
 
 The prototype model stores its preprocessing in a `Lambda` layer, which Keras
 only loads in unsafe mode. Pass `--trust-legacy-model` to `evaluate` or

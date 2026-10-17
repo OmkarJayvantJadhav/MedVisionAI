@@ -208,3 +208,12 @@ def test_noise_gate_rejects_grainy_photos(tmp_path: Path) -> None:
     result = gated.predict(noisy.getvalue())
     assert result.status is Status.REJECTED
     assert "too_noisy" in [reason.value for reason in result.reasons]
+
+
+def test_metadata_from_older_releases_still_loads(tmp_path: Path) -> None:
+    # Releases up to model-v2.2.0 carry an unused "ood_energy": null threshold.
+    raw = json.loads((write_model_dir(tmp_path / "plain") / "model_meta.json").read_text())
+    legacy = write_model_dir(
+        tmp_path / "legacy", thresholds={**raw["thresholds"], "ood_energy": None}
+    )
+    assert Predictor.from_directory(legacy).meta.thresholds.ood_mahalanobis is None

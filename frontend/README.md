@@ -1,9 +1,10 @@
 # medvision-frontend
 
 React (JavaScript, JSX) + Vite + Tailwind single-page app for MedVision AI.
-Upload or photograph a skin lesion, then see the status and risk badges, the
-top matches, a plain-language summary and a Grad-CAM heatmap with adjustable
-opacity. The disclaimer is always visible.
+One card handles the whole flow: drop, browse, paste or photograph a lesion
+(or pick a sample), see it scanned, then read the verdict, the top matches, the
+cancer-related gauge and a heatmap layered on the photo. The disclaimer is
+always visible, and phones show the verdict before the photo.
 
 ## Develop
 
@@ -35,9 +36,9 @@ API changes cannot silently break the UI.
 
 ## Structure
 
-| Path                | Purpose                                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `src/App.jsx`       | Page layout and upload → analyse → result flow                                                                  |
-| `src/api/client.js` | `fetch` wrapper; every failure becomes an `ApiError` with the backend's error code                              |
-| `src/components/`   | Upload panel (drag and drop, file picker, camera), result card, heatmap viewer, badges, disclaimer, error alert |
-| `src/lib/`          | Labels for statuses, risk flags and error codes; client-side file checks                                        |
+| Path                | Purpose                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/App.jsx`       | Page layout and the studio card's states: empty, analysing, result, error                                 |
+| `src/api/client.js` | `fetch` wrapper; every failure becomes an `ApiError` with the backend's error code                        |
+| `src/components/`   | Drop zone and samples, photo and heatmap viewer, result, progress, info sections, disclaimer, error alert |
+| `src/lib/`          | Verdict priority and wording for statuses, reasons and errors; samples; client-side file checks           |

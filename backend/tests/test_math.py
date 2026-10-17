@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from app.inference.artifacts import Thresholds
 from app.inference.calibration import (
-    energy_score,
     logits_from_features,
     mahalanobis_distance,
     pooled_features,
@@ -21,7 +20,6 @@ from tests.conftest import textured
 THRESHOLDS = Thresholds(
     low_confidence=0.5,
     malignant=0.3,
-    ood_energy=None,
     min_brightness=20.0,
     max_brightness=235.0,
     min_sharpness=5.0,
@@ -47,12 +45,6 @@ def test_softmax_temperature_flattens_and_stays_normalised() -> None:
     np.testing.assert_allclose(softmax(np.array([[1000.0, 0.0]])), [[1.0, 0.0]])
 
 
-def test_energy_is_higher_for_less_confident_logits() -> None:
-    confident, unsure = energy_score(np.array([[10.0, 0.0, 0.0], [0.1, 0.0, 0.0]]))
-    assert unsure > confident
-    assert energy_score(np.array([[0.0, 0.0]]))[0] == pytest.approx(-np.log(2))
-
-
 def test_quality_measures() -> None:
     flat = np.full((32, 32, 3), 100.0)
     assert laplacian_variance(flat[..., 0]) == 0.0
@@ -75,11 +67,11 @@ def test_noise_level_ignores_local_texture() -> None:
 def test_noise_gate_only_applies_once_fitted() -> None:
     noisy = QualityReport(brightness=120.0, sharpness=50.0, noise=6.0)
     confident = probs(0.9, 0.05, 0.05)
-    assert decide(confident, MALIGNANT, THRESHOLDS, noisy, -5.0).status is Status.OK
+    assert decide(confident, MALIGNANT, THRESHOLDS, noisy).status is Status.OK
     gated = Thresholds(**{**vars(THRESHOLDS), "max_noise": 2.5})
-    decision = decide(confident, MALIGNANT, gated, noisy, -5.0)
+    decision = decide(confident, MALIGNANT, gated, noisy)
     assert decision.status is Status.REJECTED and decision.reasons == (Reason.TOO_NOISY,)
-    assert decide(confident, MALIGNANT, gated, GOOD, -5.0).status is Status.OK
+    assert decide(confident, MALIGNANT, gated, GOOD).status is Status.OK
 
 
 def test_cam_follows_kernel_column_and_is_normalised() -> None:
@@ -113,26 +105,26 @@ def probs(*values: float) -> np.ndarray:
 
 
 def test_confident_benign_is_ok() -> None:
-    decision = decide(probs(0.9, 0.05, 0.05), MALIGNANT, THRESHOLDS, GOOD, energy=-5.0)
+    decision = decide(probs(0.9, 0.05, 0.05), MALIGNANT, THRESHOLDS, GOOD)
     assert decision.status is Status.OK and decision.risk_flag is RiskFlag.BENIGN
     assert decision.reasons == ()
 
 
 def test_malignant_flag_overrides_benign_top_class() -> None:
-    decision = decide(probs(0.6, 0.35, 0.05), MALIGNANT, THRESHOLDS, GOOD, energy=-5.0)
+    decision = decide(probs(0.6, 0.35, 0.05), MALIGNANT, THRESHOLDS, GOOD)
     assert decision.status is Status.OK
     assert decision.risk_flag is RiskFlag.MALIGNANT_SUSPECTED
     assert decision.malignant_probability == pytest.approx(0.35)
 
 
 def test_low_confidence() -> None:
-    decision = decide(probs(0.4, 0.2, 0.4), MALIGNANT, THRESHOLDS, GOOD, energy=-1.0)
+    decision = decide(probs(0.4, 0.2, 0.4), MALIGNANT, THRESHOLDS, GOOD)
     assert decision.status is Status.LOW_CONFIDENCE and decision.risk_flag is RiskFlag.UNCERTAIN
     assert decision.reasons == (Reason.LOW_CONFIDENCE,)
 
 
 def test_low_confidence_can_still_flag_malignancy() -> None:
-    decision = decide(probs(0.3, 0.45, 0.25), MALIGNANT, THRESHOLDS, GOOD, energy=-1.0)
+    decision = decide(probs(0.3, 0.45, 0.25), MALIGNANT, THRESHOLDS, GOOD)
     assert decision.status is Status.LOW_CONFIDENCE
     assert decision.risk_flag is RiskFlag.MALIGNANT_SUSPECTED
 
@@ -146,17 +138,9 @@ def test_low_confidence_can_still_flag_malignancy() -> None:
     ],
 )
 def test_unusable_images_are_rejected(quality: QualityReport, reason: Reason) -> None:
-    decision = decide(probs(0.1, 0.8, 0.1), MALIGNANT, THRESHOLDS, quality, energy=-5.0)
+    decision = decide(probs(0.1, 0.8, 0.1), MALIGNANT, THRESHOLDS, quality)
     assert decision.status is Status.REJECTED and decision.risk_flag is RiskFlag.UNCERTAIN
     assert decision.reasons == (reason,)
-
-
-def test_ood_gate_only_applies_once_fitted() -> None:
-    fitted = Thresholds(**{**vars(THRESHOLDS), "ood_energy": -3.0})
-    assert decide(probs(0.9, 0.05, 0.05), MALIGNANT, THRESHOLDS, GOOD, -1.0).status is Status.OK
-    decision = decide(probs(0.9, 0.05, 0.05), MALIGNANT, fitted, GOOD, energy=-1.0)
-    assert decision.status is Status.REJECTED
-    assert decision.reasons == (Reason.OUT_OF_DISTRIBUTION,)
 
 
 def test_mahalanobis_distance_of_pooled_features() -> None:
@@ -171,9 +155,9 @@ def test_mahalanobis_distance_of_pooled_features() -> None:
 def test_feature_gate_rejects_distant_images() -> None:
     gated = Thresholds(**{**vars(THRESHOLDS), "ood_mahalanobis": 100.0})
     confident = probs(0.9, 0.05, 0.05)
-    assert decide(confident, MALIGNANT, gated, GOOD, -5.0, distance=99.0).status is Status.OK
-    decision = decide(confident, MALIGNANT, gated, GOOD, -5.0, distance=101.0)
+    assert decide(confident, MALIGNANT, gated, GOOD, distance=99.0).status is Status.OK
+    decision = decide(confident, MALIGNANT, gated, GOOD, distance=101.0)
     assert decision.status is Status.REJECTED
     assert decision.reasons == (Reason.OUT_OF_DISTRIBUTION,)
     # Without a fitted threshold the distance is ignored.
-    assert decide(confident, MALIGNANT, THRESHOLDS, GOOD, -5.0, distance=1e9).status is Status.OK
+    assert decide(confident, MALIGNANT, THRESHOLDS, GOOD, distance=1e9).status is Status.OK

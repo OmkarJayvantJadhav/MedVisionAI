@@ -89,7 +89,6 @@ def make_meta(onnx_bytes: bytes, weights_bytes: bytes, **overrides: Any) -> dict
         "thresholds": {
             "low_confidence": 0.5,
             "malignant": 0.3,
-            "ood_energy": None,
             "min_brightness": 20.0,
             "max_brightness": 235.0,
             "min_sharpness": 5.0,

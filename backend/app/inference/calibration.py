@@ -32,13 +32,6 @@ def softmax(logits: FloatArray, temperature: float = 1.0) -> FloatArray:
     return np.asarray(exp / exp.sum(axis=-1, keepdims=True))
 
 
-def energy_score(logits: FloatArray, temperature: float = 1.0) -> FloatArray:
-    """Free energy ``-T * logsumexp(logits / T)``; higher means more out-of-distribution."""
-    scaled = logits / temperature
-    peak = scaled.max(axis=-1)
-    return np.asarray(-temperature * (peak + np.log(np.exp(scaled - peak[..., None]).sum(axis=-1))))
-
-
 def mahalanobis_distance(
     pooled: FloatArray, mean: NDArray[np.floating], precision: NDArray[np.floating]
 ) -> FloatArray:
