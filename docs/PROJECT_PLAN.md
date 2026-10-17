@@ -346,11 +346,8 @@ with green CI and an updated README section.
       diff ≤ 1e-3; JPEG ≤ 2.0 because of decoder differences, see D15).
 - [x] Checksum-verified downloader (`python -m app.inference.download`,
       `make download-model`).
-- [x] Colab notebook (`notebooks/train_colab.ipynb`) that prepares, splits,
-      leakage-checks, trains, evaluates and exports; dry-run end to end on
-      synthetic ISIC-format data.
-- [ ] Run the notebook on Colab (needs a Google account, done by the owner),
-      then publish release `model-v2.0.0` under CC BY-NC 4.0 from the exported
+- [ ] Train on the ISIC 2019 splits with the `medvision-ml` CLI (D38), then
+      publish release `model-v2.0.0` under CC BY-NC 4.0 from the exported
       files. The weights no longer derive from the prototype, so only the
       dataset licence applies to them.
 - **Done when:** a CLI `python -m app.inference.cli image.jpg` prints a
@@ -533,6 +530,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D35 | 2026-10-17 | The input pipeline loads single images, caches them, shuffles images (buffer 1,024 ≈ 600 MB) and only then batches | shuffling batches held ~1,000 batches (≈12 GB) in RAM and crashed the first ISIC run on a free Colab VM; it also kept the same images together in every epoch |
 | D36 | 2026-10-17 | `load_model` rebuilds mixed-precision models with float32 layers (weights copied unchanged), so evaluation, Grad-CAM and export all compute in float32 | the first ISIC model was trained with `mixed_float16`; Keras then computed export reference probabilities in float16 and the ONNX parity check failed (3.5e-3 > 1e-4). Served ONNX runs in float32, so every offline number must too |
 | D37 | 2026-10-17 | Near-duplicates use a 256-bit difference hash of the central 60% of the image (threshold 16 bits); `split` stops if a near-duplicate group exceeds 20 images. Supersedes the hash in D13. The first ISIC model's test numbers are void | the 64-bit whole-frame hash mostly encoded the dark circular border many dermoscopy images share: at ≤ 4 bits it chained 3,676 unrelated images of all 8 classes into one "duplicate" group, which the splitter put wholly into training, leaving validation and test 71% nevus with half the expected melanomas. On ISIC 2019 the new hash's matches up to 18 bits were all copies of the same lesion photo (checked visually) and unrelated lesions start at 19; the largest group is now 3 images and every class is split 80/10/10 |
+| D38 | 2026-10-17 | The Colab notebook is removed; training, evaluation and export run directly through the `medvision-ml` CLI on any machine. Supersedes D24 | the notebook needed someone to keep a browser tab active for hours, and free sessions disconnected twice mid-run; the CLI is the tested path anyway, and the notebook only wrapped it |
 
 ---
 

@@ -75,18 +75,20 @@ uv run medvision-ml split --source data/isic2019_raw     # writes data/skin/{Tra
 uv run medvision-ml check-leakage                        # must exit 0
 ```
 
-### Training on a free GPU
+### Training, evaluation and export
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/OmkarJayvantJadhav/MedVisionAI/blob/main/notebooks/train_colab.ipynb)
+```bash
+cd ml
+uv run medvision-ml train --run-name isic2019-effb0
+uv run medvision-ml evaluate --model artifacts/isic2019-effb0/model.keras
+uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
+  --version skin-effb0-v2.0.0 --output export/skin-effb0-v2.0.0
+```
 
-[`notebooks/train_colab.ipynb`](../notebooks/train_colab.ipynb) runs every step
-above on a free Colab T4 GPU, then trains, evaluates and exports the model and
-copies the results to Google Drive (`MyDrive/medvisionai/`). Choose *Runtime →
-Change runtime type → T4 GPU*, then *Runtime → Run all*. Any failing step,
-including a leakage check, stops the notebook.
-
-Decoded images are cached on disk (`MEDVISION__DATA__CACHE_DIR`) because the
-full set needs about 12 GB, more than a free Colab VM's RAM.
+A GPU is used automatically when TensorFlow finds one (with mixed precision);
+otherwise training runs on the CPU. Decoded images can be cached on disk with
+`MEDVISION__DATA__CACHE_DIR=/path/to/cache`, because the full set needs about
+12 GB of memory.
 
 ### Required attribution
 
