@@ -395,7 +395,7 @@ with green CI and an updated README section.
       test; `export --calibration` ships them (D41).
 - [x] OOD gate: Mahalanobis distance of the pooled features, threshold from
       validation, reported on 497 CC BY 2.0 Open Images photos (D45); shipped
-      in release `model-v2.1.0`.
+      in release `model-v2.1.0`; noise check added in `model-v2.2.0` (D47).
 - [x] Robustness suite (blur, brightness, JPEG, noise, rotation, phone-like):
       `medvision-ml robustness` (D46).
 - [x] Fairness analysis by sex, age and body site (`medvision-ml subgroups`);
