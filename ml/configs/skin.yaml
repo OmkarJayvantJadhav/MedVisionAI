@@ -17,7 +17,7 @@ data:
   cache_dir: null                # set a folder to cache on disk instead of in RAM
   shuffle_buffer_size: 1024
   split_ratios: [0.80, 0.10, 0.10]
-  near_duplicate_max_distance: 4  # dHash Hamming distance (out of 64 bits)
+  near_duplicate_max_distance: 16  # dHash Hamming distance (out of 256 bits)
 
 augmentation:
   horizontal_flip: true

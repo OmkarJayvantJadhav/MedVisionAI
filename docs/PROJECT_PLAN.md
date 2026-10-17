@@ -324,8 +324,9 @@ with green CI and an updated README section.
 - [x] Dataset chosen (D21): `medvision-ml prepare-isic2019` converts the
       ISIC 2019 release and records lesion groups; `split` and
       `check-leakage` respect them (D22).
-- [ ] Run prepare → split → check-leakage on the downloaded images (9.8 GB,
-      done on the training machine).
+- [x] Run prepare → split → check-leakage on the downloaded images (9.8 GB):
+      48 duplicate copies and 4 conflicting-label images removed, 25,279 images
+      split 80/10/10 per class, no leakage (after the D37 fix).
 - [x] Unit tests: config parsing, class-weight computation, model builder
       output shapes (`weights=None`), metrics functions, Grad-CAM parity, and
       an end-to-end train → evaluate → Grad-CAM smoke test.
@@ -531,6 +532,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D34 | 2026-10-16 | Before splitting, identical copies of an image are reduced to one; when copies disagree on the diagnosis all of them are dropped (listed in `outputs/split_removed.json`). Duplicate groups that mix labels are stratified under their most common label so they stay in one split | the first real ISIC 2019 split had 2 exact and 24 near-duplicate pairs across splits, all from images filed under two diagnoses (26 label conflicts); a conflicting label is unknown ground truth |
 | D35 | 2026-10-17 | The input pipeline loads single images, caches them, shuffles images (buffer 1,024 ≈ 600 MB) and only then batches | shuffling batches held ~1,000 batches (≈12 GB) in RAM and crashed the first ISIC run on a free Colab VM; it also kept the same images together in every epoch |
 | D36 | 2026-10-17 | `load_model` rebuilds mixed-precision models with float32 layers (weights copied unchanged), so evaluation, Grad-CAM and export all compute in float32 | the first ISIC model was trained with `mixed_float16`; Keras then computed export reference probabilities in float16 and the ONNX parity check failed (3.5e-3 > 1e-4). Served ONNX runs in float32, so every offline number must too |
+| D37 | 2026-10-17 | Near-duplicates use a 256-bit difference hash of the central 60% of the image (threshold 16 bits); `split` stops if a near-duplicate group exceeds 20 images. Supersedes the hash in D13. The first ISIC model's test numbers are void | the 64-bit whole-frame hash mostly encoded the dark circular border many dermoscopy images share: at ≤ 4 bits it chained 3,676 unrelated images of all 8 classes into one "duplicate" group, which the splitter put wholly into training, leaving validation and test 71% nevus with half the expected melanomas. On ISIC 2019 the new hash's matches up to 18 bits were all copies of the same lesion photo (checked visually) and unrelated lesions start at 19; the largest group is now 3 images and every class is split 80/10/10 |
 
 ---
 

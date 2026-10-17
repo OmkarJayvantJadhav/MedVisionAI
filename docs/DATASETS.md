@@ -29,6 +29,14 @@ the same lesion in both training and test sets and overstate accuracy, so the
 split is grouped by `lesion_id` (and by near-duplicate pixels as a second line
 of defence).
 
+**Near-duplicate fingerprint.** Many ISIC 2019 images share a dark circular
+border. A small hash of the whole frame mostly encodes that border and made
+thousands of unrelated lesions look like copies, so the fingerprint is a
+256-bit difference hash of the central 60% of the image, and two images count
+as copies within 16 bits. On ISIC 2019 every pair up to 18 bits is the same
+lesion photo and unrelated lesions start at 19. `split` stops with an error if
+a near-duplicate group grows beyond 20 images.
+
 **Duplicates with conflicting labels.** The source collections overlap, and a
 few identical images appear under two different diagnoses. `split` keeps one
 copy of each identical image, drops every copy whose label disagrees (the true
