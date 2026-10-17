@@ -8,7 +8,7 @@ import UploadPanel from "./UploadPanel.jsx";
 
 function renderPanel(props = {}) {
   const handlers = { onSelect: vi.fn(), onSample: vi.fn(), onClear: vi.fn() };
-  render(<UploadPanel preview={null} busy={false} {...handlers} {...props} />);
+  render(<UploadPanel busy={false} {...handlers} {...props} />);
   return handlers;
 }
 
@@ -58,8 +58,10 @@ describe("UploadPanel", () => {
     expect(onSample.mock.calls.map(([sample]) => sample.id)).toEqual(SAMPLES.map((s) => s.id));
   });
 
-  it("disables starting over while busy", () => {
-    renderPanel({ preview: "blob:preview", busy: true });
-    expect(screen.getByRole("button", { name: "Choose another" })).toBeDisabled();
+  it("disables the samples while busy", () => {
+    renderPanel({ busy: true });
+    for (const sample of SAMPLES) {
+      expect(screen.getByRole("button", { name: sample.label })).toBeDisabled();
+    }
   });
 });

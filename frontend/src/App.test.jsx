@@ -46,16 +46,19 @@ describe("App", () => {
     const fetchMock = mockApi();
     render(<App />);
 
-    expect(screen.getByText(/result and heatmap will appear here/)).toBeInTheDocument();
+    expect(screen.getByText("Drop an image here")).toBeInTheDocument();
     await chooseFile(user);
     expect(screen.getByAltText("Selected skin lesion")).toBeInTheDocument();
     expect(await screen.findByText(VERDICT)).toBeInTheDocument();
+    // The heatmap is layered over the user's own photo in the same viewer.
+    expect(screen.getByAltText(/Heatmap of regions/)).toBeInTheDocument();
+    expect(screen.getAllByAltText("Selected skin lesion")).toHaveLength(1);
     expect(explainCalls(fetchMock)).toHaveLength(1);
     expect(explainCalls(fetchMock)[0][1]).toEqual(expect.objectContaining({ method: "POST" }));
 
     await user.click(screen.getByRole("button", { name: "Choose another" }));
     expect(screen.queryByText(VERDICT)).not.toBeInTheDocument();
-    expect(screen.getByText(/result and heatmap will appear here/)).toBeInTheDocument();
+    expect(screen.getByText("Drop an image here")).toBeInTheDocument();
   });
 
   it("analyses a sample image", async () => {
