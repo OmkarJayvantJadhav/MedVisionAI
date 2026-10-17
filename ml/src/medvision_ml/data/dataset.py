@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,23 @@ def class_counts(split_dir: Path) -> dict[str, int]:
     if not split_dir.is_dir():
         raise FileNotFoundError(f"Missing split directory: {split_dir}")
     return {d.name: len(list_class_images(d)) for d in sorted(split_dir.iterdir()) if d.is_dir()}
+
+
+def cache_name(split_dir: Path, image_size: int) -> str:
+    """Return a cache file name that changes whenever the split's images change.
+
+    ``tf.data`` reuses an existing cache without checking its source, so a
+    fixed name would silently train on an earlier split after re-splitting.
+    The name covers the image size and every file's class, name, size and
+    modification time.
+    """
+    digest = hashlib.sha256(f"{image_size}\n".encode())
+    for class_dir in sorted(d for d in split_dir.iterdir() if d.is_dir()):
+        for path in list_class_images(class_dir):
+            stat = path.stat()
+            entry = f"{class_dir.name}/{path.name}:{stat.st_size}:{stat.st_mtime_ns}\n"
+            digest.update(entry.encode())
+    return f"{split_dir.name.lower()}-{digest.hexdigest()[:16]}"
 
 
 def load_split(
@@ -72,7 +90,7 @@ def load_split(
     file_paths = [] if shuffle else list(dataset.file_paths)
     if config.cache and config.cache_dir is not None:
         config.cache_dir.mkdir(parents=True, exist_ok=True)
-        dataset = dataset.cache(str(config.cache_dir / split_dir.name.lower()))
+        dataset = dataset.cache(str(config.cache_dir / cache_name(split_dir, config.image_size)))
     elif config.cache:
         dataset = dataset.cache()
     if shuffle:
