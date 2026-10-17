@@ -1,4 +1,4 @@
-"""Logits, temperature scaling and an energy-based out-of-distribution score."""
+"""Logits, temperature scaling and out-of-distribution scores."""
 
 from __future__ import annotations
 
@@ -8,6 +8,11 @@ from numpy.typing import NDArray
 FloatArray = NDArray[np.float64]
 
 
+def pooled_features(feature_maps: NDArray[np.floating]) -> FloatArray:
+    """Global-average-pool ``(N, h, w, K)`` feature maps to ``(N, K)``."""
+    return np.asarray(feature_maps.astype(np.float64).mean(axis=(1, 2)))
+
+
 def logits_from_features(
     feature_maps: NDArray[np.floating], kernel: NDArray[np.floating], bias: NDArray[np.floating]
 ) -> FloatArray:
@@ -15,7 +20,7 @@ def logits_from_features(
 
     ``feature_maps`` has shape ``(N, h, w, K)``; the result is ``(N, C)``.
     """
-    pooled = feature_maps.astype(np.float64).mean(axis=(1, 2))
+    pooled = pooled_features(feature_maps)
     return np.asarray(pooled @ kernel.astype(np.float64) + bias.astype(np.float64))
 
 
@@ -32,3 +37,15 @@ def energy_score(logits: FloatArray, temperature: float = 1.0) -> FloatArray:
     scaled = logits / temperature
     peak = scaled.max(axis=-1)
     return np.asarray(-temperature * (peak + np.log(np.exp(scaled - peak[..., None]).sum(axis=-1))))
+
+
+def mahalanobis_distance(
+    pooled: FloatArray, mean: NDArray[np.floating], precision: NDArray[np.floating]
+) -> FloatArray:
+    """Squared Mahalanobis distance of each row of ``pooled`` from the training features.
+
+    Higher means less like the training images; the gate rejects an image when
+    it exceeds the threshold fitted on validation data.
+    """
+    centred = pooled - mean
+    return np.asarray(np.einsum("nd,de,ne->n", centred, precision, centred))

@@ -28,6 +28,12 @@ KERNEL = np.array(
     dtype=np.float32,
 )
 BIAS = np.zeros(len(CLASSES), dtype=np.float32)
+# Out-of-distribution statistics: features (local colour means) centred on mid
+# grey with a standard deviation of 40, so the squared distance of a colour c is
+# sum((c - 128) ** 2) / 1600. Red (200, 60, 60) scores 9.0; yellow (250, 250, 20)
+# scores 25.9.
+OOD_MEAN = np.full(3, 128.0, dtype=np.float32)
+OOD_PRECISION = np.eye(3, dtype=np.float32) / 1600.0
 
 
 def build_onnx(kernel: np.ndarray = KERNEL, bias: np.ndarray = BIAS) -> bytes:
@@ -98,7 +104,14 @@ def make_meta(onnx_bytes: bytes, weights_bytes: bytes, **overrides: Any) -> dict
     return meta
 
 
-def write_model_dir(directory: Path, **meta_overrides: Any) -> Path:
+def write_model_dir(
+    directory: Path,
+    *,
+    ood_threshold: float | None = None,
+    ood_mean: np.ndarray = OOD_MEAN,
+    **meta_overrides: Any,
+) -> Path:
+    """Write a fake model; ``ood_threshold`` also writes ``ood_stats.npz`` and enables the gate."""
     directory.mkdir(parents=True, exist_ok=True)
     onnx_bytes = build_onnx()
     buffer = io.BytesIO()
@@ -107,6 +120,12 @@ def write_model_dir(directory: Path, **meta_overrides: Any) -> Path:
     (directory / "model.onnx").write_bytes(onnx_bytes)
     (directory / "head_weights.npz").write_bytes(weights_bytes)
     meta = make_meta(onnx_bytes, weights_bytes, **meta_overrides)
+    if ood_threshold is not None:
+        stats = io.BytesIO()
+        np.savez(stats, mean=ood_mean, precision=OOD_PRECISION)
+        (directory / "ood_stats.npz").write_bytes(stats.getvalue())
+        meta["files"]["ood_stats.npz"] = {"sha256": hashlib.sha256(stats.getvalue()).hexdigest()}
+        meta["thresholds"]["ood_mahalanobis"] = ood_threshold
     (directory / "model_meta.json").write_text(json.dumps(meta), encoding="utf-8")
     return directory
 

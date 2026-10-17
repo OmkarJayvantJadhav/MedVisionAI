@@ -53,3 +53,5 @@ evaluation:
   calibration_bins: 15
   target_malignant_recall: 0.90    # fits the malignant-probability threshold
   target_confident_accuracy: 0.85  # fits the low-confidence threshold
+  target_in_distribution_acceptance: 0.99  # fits the out-of-distribution threshold
+  ood_shrinkage: 0.01

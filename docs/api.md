@@ -33,6 +33,10 @@ Interactive documentation is served at `/docs` (Swagger UI) and the schema at
 
 - `status`: `ok`, `low_confidence` (top probability below the threshold) or
   `rejected` (too dark, too bright, too blurry, or out of distribution).
+  An image is out of distribution when the squared Mahalanobis distance of its
+  pooled features from the training images exceeds
+  `thresholds.ood_mahalanobis` in `/meta`. That value is `null` when the model
+  ships no gate (`ood_stats.npz`).
 - `risk_flag`: `malignant_suspected` when the summed probability of the
   malignant and pre-malignant classes reaches its threshold, even if a benign
   class ranks first; `uncertain` for rejected or low-confidence images;

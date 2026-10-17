@@ -59,8 +59,13 @@ def decide(
     thresholds: Thresholds,
     quality: QualityReport,
     energy: float,
+    distance: float | None = None,
 ) -> Decision:
-    """Apply the safety rules to one image's calibrated probabilities."""
+    """Apply the safety rules to one image's calibrated probabilities.
+
+    ``distance`` is the squared Mahalanobis distance of the image's pooled
+    features; the image is rejected when it exceeds ``thresholds.ood_mahalanobis``.
+    """
     reasons: list[Reason] = []
     if quality.brightness < thresholds.min_brightness:
         reasons.append(Reason.TOO_DARK)
@@ -68,7 +73,11 @@ def decide(
         reasons.append(Reason.TOO_BRIGHT)
     if quality.sharpness < thresholds.min_sharpness:
         reasons.append(Reason.TOO_BLURRY)
-    if thresholds.ood_energy is not None and energy > thresholds.ood_energy:
+    gates = (
+        (thresholds.ood_energy, energy),
+        (thresholds.ood_mahalanobis, distance),
+    )
+    if any(limit is not None and score is not None and score > limit for limit, score in gates):
         reasons.append(Reason.OUT_OF_DISTRIBUTION)
 
     malignant = float(np.sum(probabilities[list(malignant_indices)])) if malignant_indices else 0.0

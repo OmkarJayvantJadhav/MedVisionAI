@@ -74,6 +74,18 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
     assert set(fitted["splits"]) == {"validation", "test"}
     assert (calibration / "reliability_validation_after.png").is_file()
 
+    for i in range(3):
+        make_image(tmp_path / "photos" / f"{i}.jpg", seed=900 + i, fmt="JPEG")
+    ood_args = ["fit-ood", "--model", str(model), "--non-skin", str(tmp_path / "photos")]
+    calibration_args = ["--calibration", str(calibration / "calibration.json")]
+    assert main([*args, *ood_args, *calibration_args]) == 0
+    ood = tmp_path / "out" / "ood" / "smoke"
+    gate = json.loads((ood / "ood.json").read_text())
+    assert gate["threshold"] > 0
+    assert gate["non_skin"]["n_samples"] == 3
+    assert gate["splits"]["validation"]["n_samples"] == 4
+    assert set(gate["auroc_test_vs_non_skin"]) == {"mahalanobis", "energy", "max_softmax"}
+
     export = tmp_path / "export"
     assert (
         main(
@@ -86,13 +98,16 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
                 "smoke-v0.0.1",
                 "--output",
                 str(export),
-                "--calibration",
-                str(calibration / "calibration.json"),
+                *calibration_args,
+                "--ood",
+                str(ood / "ood.json"),
             ]
         )
         == 0
     )
     meta = json.loads((export / "model_meta.json").read_text())
+    assert meta["thresholds"]["ood_mahalanobis"] == gate["threshold"]
+    assert set(meta["files"]) == {"model.onnx", "head_weights.npz", "ood_stats.npz"}
     assert meta["calibration"] == {"temperature": fitted["temperature"], "fitted": True}
     assert meta["thresholds"]["malignant"] == fitted["thresholds"]["malignant"]
     assert meta["thresholds"]["fitted"] is True

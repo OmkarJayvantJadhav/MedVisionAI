@@ -398,6 +398,18 @@
               }
             ],
             "title": "Ood Energy"
+          },
+          "ood_mahalanobis": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Squared Mahalanobis distance of the image features above which the image is rejected as unlike the training data; null when the gate is off",
+            "title": "Ood Mahalanobis"
           }
         },
         "required": [

@@ -159,3 +159,31 @@ def test_inference_threads_are_configurable(tmp_path: Path, image_bytes: ImageFa
     assert default.session.get_session_options().intra_op_num_threads == 0
     data = image_bytes((230, 40, 40))
     assert single.predict(data).top_k == default.predict(data).top_k
+
+
+def test_feature_gate_rejects_images_unlike_the_training_data(
+    tmp_path: Path, image_bytes: ImageFactory
+) -> None:
+    gated = Predictor.from_directory(write_model_dir(tmp_path, ood_threshold=20.0))
+    assert gated.meta.thresholds.ood_mahalanobis == 20.0
+    assert gated.predict(image_bytes((200, 60, 60))).status is Status.OK
+    result = gated.predict(image_bytes((250, 250, 20)))
+    assert result.status is Status.REJECTED
+    assert result.risk_flag is RiskFlag.UNCERTAIN
+    assert [reason.value for reason in result.reasons] == ["out_of_distribution"]
+
+
+def test_feature_gate_needs_its_statistics(tmp_path: Path) -> None:
+    model_dir = write_model_dir(tmp_path / "missing", ood_threshold=20.0)
+    (model_dir / "ood_stats.npz").unlink()
+    with pytest.raises(ModelArtifactError, match="Missing"):
+        load_artifacts(model_dir)
+    unrecorded = write_model_dir(tmp_path / "unrecorded", ood_threshold=20.0)
+    meta = json.loads((unrecorded / "model_meta.json").read_text(encoding="utf-8"))
+    del meta["files"]["ood_stats.npz"]
+    (unrecorded / "model_meta.json").write_text(json.dumps(meta), encoding="utf-8")
+    with pytest.raises(ModelArtifactError, match="checksum"):
+        load_artifacts(unrecorded)
+    wrong = write_model_dir(tmp_path / "wrong", ood_threshold=20.0, ood_mean=np.zeros(5))
+    with pytest.raises(ModelArtifactError, match="features"):
+        load_artifacts(wrong)
