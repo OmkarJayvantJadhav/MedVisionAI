@@ -45,4 +45,3 @@ frontend/coverage/
 .DS_Store
 Thumbs.db
 /ml/artifacts/
-/.space-staging/

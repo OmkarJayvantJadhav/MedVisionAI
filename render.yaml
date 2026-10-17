@@ -1,0 +1,24 @@
+# Render Blueprint: the live demo on Render's free web-service tier (D44).
+# Render builds the Dockerfile and deploys main once GitHub CI has passed.
+services:
+  - type: web
+    name: medvision-ai
+    runtime: docker
+    plan: free
+    repo: https://github.com/OmkarJayvantJadhav/MedVisionAI
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: checksPass
+    envVars:
+      # The free tier gives a fraction of one CPU; one thread avoids contention.
+      - key: MEDVISION_INFERENCE_THREADS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      # Every visitor arrives through Render's proxy, so this is a shared
+      # ceiling that protects the free CPU, not a per-visitor limit.
+      - key: MEDVISION_RATE_LIMIT_PER_MINUTE
+        value: "60"
