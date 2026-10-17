@@ -389,8 +389,11 @@ with green CI and an updated README section.
   is Phase 7.
 
 ### Phase 6 — Responsible-AI evaluation
-- [ ] Calibration (temperature scaling, ECE, reliability diagram).
-- [ ] Threshold fitting for `τ`, `τ_malignant` and the OOD gate (§8).
+- [x] Calibration (temperature scaling, ECE, reliability diagrams before and
+      after): `medvision-ml calibrate` (D41).
+- [x] Threshold fitting for `τ` and `τ_malignant` on validation, reported on
+      test; `export --calibration` ships them (D41).
+- [ ] OOD gate (energy threshold from a licensed non-skin image set).
 - [ ] Robustness suite (blur, brightness, JPEG, noise, rotation).
 - [ ] Fairness analysis (or a documented limitation).
 - [ ] `docs/model_card.md`: intended use, data, metrics, limitations,
@@ -536,6 +539,7 @@ Append new entries; never rewrite old ones (add a superseding entry instead).
 | D38 | 2026-10-17 | The Colab notebook is removed; training, evaluation and export run directly through the `medvision-ml` CLI on any machine. Supersedes D24 | the notebook needed someone to keep a browser tab active for hours, and free sessions disconnected twice mid-run; the CLI is the tested path anyway, and the notebook only wrapped it |
 | D39 | 2026-10-17 | Train on Kaggle's free GPU (T4) through `notebooks/train_kaggle.ipynb`, run as a background commit; the notebook only calls the `medvision-ml` CLI, fails fast, deletes the downloaded images once split and writes results to `/kaggle/working` (the Output tab). Builds on D38 | a committed Kaggle run keeps going with the browser closed (up to 12 h, about 30 GPU hours a week free), which removes the babysitting that made Colab unreliable; the CLI stays the only tested logic |
 | D40 | 2026-10-17 | `to_float32` loads the weights into the float32 rebuild through Keras's own weight loader (`save_weights` / `load_weights`) instead of `set_weights`. Corrects D36; numbers from evaluations and exports of mixed-precision models made before this fix are void | `set_weights` skipped the Normalization layer's load hook, so EfficientNet's input normalisation silently became the identity in every float32 rebuild. The first Kaggle model scored 0.695 validation accuracy in training but 0.646 after reload (test 0.636); with the fix the float32 rebuild matches the trained model to 1.5e-3 with identical top-1 predictions |
+| D41 | 2026-10-17 | `medvision-ml calibrate` fits on Validation and reports on Test: temperature by minimising NLL (golden-section search on log T, NumPy only); `τ_malignant` = highest summed malignant probability reaching 0.90 malignant recall; `τ` = lowest top-1 probability above which predictions are ≥ 85% correct, or 1.0 (everything low confidence) when no threshold reaches it. Targets live in `evaluation.target_*`; `export --calibration` writes them into `model_meta.json` with `fitted: true`. The OOD energy gate stays off until a licensed non-skin image set exists | §8.2–8.4. 85% makes an "ok" answer right far more often than the model overall (71%); falling back to 1.0 never lets a weak model look confident. SciPy is only a transitive dependency, so the 1-D search is written out instead of imported. First ISIC model: T = 1.08, test ECE 0.026, `τ_malignant` 0.193 → test malignant recall 0.904 at precision 0.681 (49% of images flagged), `τ` 0.625 → 59% of test images answered at 86.9% accuracy |
 
 ---
 

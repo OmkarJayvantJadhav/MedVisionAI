@@ -159,10 +159,25 @@ def _gradcam(args: argparse.Namespace, config: ProjectConfig) -> int:
     return 0
 
 
+def _calibrate(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.calibration.calibrate import calibrate
+
+    report = calibrate(
+        config, args.model, output_dir=args.output, trust_legacy_lambda=args.trust_legacy_model
+    )
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
-    from medvision_ml.export.onnx_export import export_model
+    from medvision_ml.calibration.calibrate import read_calibration
+    from medvision_ml.export.onnx_export import Thresholds, export_model
     from medvision_ml.models.io import load_class_names, load_model
 
+    temperature, thresholds = 1.0, Thresholds()
+    if args.calibration is not None:
+        temperature, fitted = read_calibration(args.calibration)
+        thresholds = Thresholds(**fitted, fitted=True)
     model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
     class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))
     output = args.output or config.model_dir / "export" / args.version
@@ -174,6 +189,9 @@ def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
         model_version=args.version,
         backbone=args.backbone or config.model.backbone,
         image_size=config.data.image_size,
+        thresholds=thresholds,
+        temperature=temperature,
+        calibration_fitted=args.calibration is not None,
     )
     print(f"Exported to {result.directory}")
     print(f"Max ONNX/Keras probability difference: {result.max_probability_diff:.2e}")
@@ -226,6 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, handler, help_text in (
         ("evaluate", _evaluate, "evaluate a saved model on a split"),
+        ("calibrate", _calibrate, "fit temperature and decision thresholds on validation"),
         ("gradcam", _gradcam, "explain one image with Grad-CAM"),
         ("export", _export, "export a model to ONNX serving artifacts"),
     ):
@@ -243,6 +262,14 @@ def build_parser() -> argparse.ArgumentParser:
         elif name == "export":
             sub.add_argument("--version", required=True, help="e.g. skin-effb0-v1.0.0")
             sub.add_argument("--backbone", default=None, help="recorded in the metadata")
+            sub.add_argument(
+                "--calibration",
+                type=Path,
+                default=None,
+                help="calibration.json from `calibrate`; ships its temperature and thresholds",
+            )
+        elif name == "calibrate":
+            pass
         else:
             sub.add_argument("--image", type=Path, required=True)
             sub.add_argument("--class-index", type=int, default=None)

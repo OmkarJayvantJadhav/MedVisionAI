@@ -41,6 +41,7 @@ is not part of the repository.
 | `medvision-ml split --source raw/` | Builds stratified 80/10/10 splits from a folder of class folders. Lesion groups (`groups.csv`) and near-duplicates are merged first so every photo of a lesion lands in the same split. |
 | `medvision-ml train [--run-name NAME]` | Stage 1 trains the head on a frozen ImageNet backbone; stage 2 fine-tunes the top backbone layers (batch-norm stays frozen). Uses square-root class weights by default. |
 | `medvision-ml evaluate --model PATH` | Writes `metrics.json`, a classification report, per-image predictions, a confusion matrix and a reliability diagram. Metrics include the malignant-group recall and calibration error used for model selection. |
+| `medvision-ml calibrate --model PATH` | Fits the temperature and the low-confidence and malignant thresholds on the validation split, reports them on the test split, and writes `calibration.json` with reliability diagrams before and after. |
 | `medvision-ml gradcam --model PATH --image IMG` | Saves a Grad-CAM overlay for one image. |
 
 The prototype model stores its preprocessing in a `Lambda` layer, which Keras

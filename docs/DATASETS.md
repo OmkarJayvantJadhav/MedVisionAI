@@ -81,9 +81,15 @@ uv run medvision-ml check-leakage                        # must exit 0
 cd ml
 uv run medvision-ml train --run-name isic2019-effb0
 uv run medvision-ml evaluate --model artifacts/isic2019-effb0/model.keras
+uv run medvision-ml calibrate --model artifacts/isic2019-effb0/model.keras
 uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
-  --version skin-effb0-v2.0.0 --output export/skin-effb0-v2.0.0
+  --version skin-effb0-v2.0.0 --output export/skin-effb0-v2.0.0 \
+  --calibration outputs/calibration/isic2019-effb0/calibration.json
 ```
+
+`calibrate` fits the temperature and the decision thresholds on the validation
+split and reports them on the test split; `export --calibration` ships them in
+`model_meta.json`.
 
 A GPU is used automatically when TensorFlow finds one (with mixed precision);
 otherwise training runs on the CPU.
