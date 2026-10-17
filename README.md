@@ -4,8 +4,15 @@ Explainable skin-lesion classification: upload a skin photo and get the most
 likely conditions with calibrated confidence, a heatmap showing what the model
 focused on, and a clear safety status.
 
-> **Status:** planning and bootstrap. See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
-> for the architecture, roadmap, and design decisions.
+**Live demo: [medvision-ai-hguo.onrender.com](https://medvision-ai-hguo.onrender.com)**
+(free hosting: the first request after 15 idle minutes takes about a minute
+while the service wakes up)
+
+> Educational and research use only. Not a medical diagnosis; consult a
+> dermatologist about any skin concern.
+
+See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the architecture,
+roadmap, and design decisions.
 
 ## Planned features
 
