@@ -31,11 +31,11 @@ model:
   pretrained: true               # ImageNet weights; false only for smoke tests
 
 training:
-  epochs: 50
-  learning_rate: 1.0e-4
-  fine_tune_epochs: 15
-  fine_tune_learning_rate: 1.0e-5
-  fine_tune_layers: 40           # final backbone layers unfrozen in stage 2
+  epochs: 5                      # stage 1: short warm-up of the new head (D42)
+  learning_rate: 1.0e-3
+  fine_tune_epochs: 40           # stage 2 does the real learning; early stopping ends it
+  fine_tune_learning_rate: 1.0e-4
+  fine_tune_layers: 237          # all EfficientNetB0 layers; batch-norm stays frozen
   class_weighting: sqrt          # none | balanced | sqrt
   mixed_precision: true
   early_stopping_patience: 10
