@@ -116,3 +116,37 @@ def test_load_class_names_validates(tmp_path: Path) -> None:
     path.write_text('["only"]', encoding="utf-8")
     with pytest.raises(ValueError):
         load_class_names(path)
+
+
+def test_mixed_precision_model_loads_and_exports_in_float32(tmp_path: Path) -> None:
+    """A model trained with mixed precision must be evaluated and exported in float32.
+
+    Regression: exporting the first ISIC model failed its parity check (3.5e-3)
+    because Keras computed the reference probabilities in float16.
+    """
+    from medvision_ml.export.onnx_export import export_model
+
+    keras.mixed_precision.set_global_policy("mixed_float16")
+    try:
+        keras.utils.set_random_seed(1)
+        mixed = build_model(ModelConfig(), AugmentationConfig(), CLASSES, SIZE, weights=None)
+        save_model(mixed, tmp_path / "mixed.keras", [f"c{i}" for i in range(CLASSES)])
+    finally:
+        keras.mixed_precision.set_global_policy("float32")
+
+    restored = load_model(tmp_path / "mixed.keras")
+    policies = {layer.dtype_policy.name for layer in restored.layers}
+    assert policies == {"float32"}
+    for original, copy in zip(mixed.weights, restored.weights, strict=True):
+        np.testing.assert_array_equal(np.asarray(original), np.asarray(copy))
+
+    result = export_model(
+        restored,
+        tmp_path / "export",
+        class_names=[f"c{i}" for i in range(CLASSES)],
+        malignant_classes=[],
+        model_version="mixed-test",
+        backbone="efficientnetb0",
+        image_size=SIZE,
+    )
+    assert result.max_probability_diff <= 1e-4

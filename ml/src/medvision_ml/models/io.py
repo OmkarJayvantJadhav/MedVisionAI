@@ -28,8 +28,40 @@ def save_model(model: keras.Model, path: Path, class_names: list[str]) -> Path:
     return names_path
 
 
+_REDUCED_PRECISION = frozenset({"mixed_float16", "mixed_bfloat16", "float16", "bfloat16"})
+
+
+def _float32_config(value: Any) -> Any:
+    """Return a copy of a Keras config with every reduced-precision dtype policy set to float32."""
+    if isinstance(value, dict):
+        return {k: _float32_config(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return type(value)(_float32_config(v) for v in value)
+    if isinstance(value, str) and value in _REDUCED_PRECISION:
+        return "float32"
+    return value
+
+
+def to_float32(model: keras.Model) -> keras.Model:
+    """Rebuild a model trained with mixed precision so it computes in float32.
+
+    Mixed precision keeps the weights in float32 but computes in float16, and a
+    saved model keeps that policy. Inference, evaluation and export must match
+    the float32 ONNX model that is served, so the architecture is rebuilt with
+    float32 layers and the (already float32) weights are copied over unchanged.
+    Models without reduced-precision layers are returned as they are.
+    """
+    config = model.get_config()
+    converted = _float32_config(config)
+    if converted == config:
+        return model
+    rebuilt = model.__class__.from_config(converted)
+    rebuilt.set_weights(model.get_weights())
+    return rebuilt
+
+
 def load_model(path: Path, *, trust_legacy_lambda: bool = False) -> keras.Model:
-    """Load a ``.keras`` model for inference.
+    """Load a ``.keras`` model for inference, computing in float32.
 
     Args:
         path: Model file.
@@ -48,7 +80,7 @@ def load_model(path: Path, *, trust_legacy_lambda: bool = False) -> keras.Model:
         kwargs["custom_objects"] = {
             "preprocess_input": keras.applications.efficientnet.preprocess_input
         }
-    return keras.models.load_model(path, **kwargs)
+    return to_float32(keras.models.load_model(path, **kwargs))
 
 
 def load_class_names(path: Path) -> list[str]:
