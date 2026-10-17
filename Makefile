@@ -1,6 +1,6 @@
 PACKAGES := ml backend
 
-.PHONY: help setup lint format typecheck test check clean download-model predict run frontend-setup frontend-check frontend-dev api-schema docker-build docker-run smoke
+.PHONY: help setup lint format typecheck test check clean download-model predict run frontend-setup frontend-check frontend-dev api-schema docker-build docker-run smoke evaluate
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -43,6 +43,27 @@ frontend-dev: ## Start the frontend dev server on http://localhost:5173 (run `ma
 
 api-schema: ## Regenerate frontend/src/api/openapi.json from the backend
 	cd backend && uv run python -m app.openapi
+
+# make evaluate: every responsible-AI report (plan section 8) for one trained model.
+# Reports go to ml/outputs/<report>/<run>, where <run> is the model's folder name.
+EVAL_MODEL = $(abspath $(MODEL))
+EVAL_RUN = $(notdir $(patsubst %/,%,$(dir $(EVAL_MODEL))))
+EVAL_OUT = $(CURDIR)/ml/outputs
+NON_SKIN ?= $(CURDIR)/ml/data/non_skin
+ML = cd ml && uv run medvision-ml
+
+evaluate: ## All model reports: make evaluate MODEL=ml/artifacts/<run>/model.keras METADATA=<ISIC metadata CSV>
+	@test -n "$(MODEL)" -a -n "$(METADATA)" || { echo "usage: make evaluate MODEL=... METADATA=..."; exit 2; }
+	$(ML) evaluate --model $(EVAL_MODEL)
+	$(ML) calibrate --model $(EVAL_MODEL)
+	test -f $(NON_SKIN)/ATTRIBUTION.csv || ($(ML) fetch-non-skin --dest $(NON_SKIN) --count 500)
+	$(ML) fit-ood --model $(EVAL_MODEL) --non-skin $(NON_SKIN) \
+		--calibration $(EVAL_OUT)/calibration/$(EVAL_RUN)/calibration.json
+	$(ML) robustness --model $(EVAL_MODEL) \
+		--calibration $(EVAL_OUT)/calibration/$(EVAL_RUN)/calibration.json \
+		--ood $(EVAL_OUT)/ood/$(EVAL_RUN)/ood.json
+	$(ML) subgroups --model $(EVAL_MODEL) --metadata $(abspath $(METADATA)) \
+		--calibration $(EVAL_OUT)/calibration/$(EVAL_RUN)/calibration.json
 
 docker-build: ## Build the app image (frontend + API + verified model)
 	docker build -t medvisionai:local .

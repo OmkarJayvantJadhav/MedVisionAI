@@ -107,6 +107,20 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
     )
     meta = json.loads((export / "model_meta.json").read_text())
     assert meta["thresholds"]["ood_mahalanobis"] == gate["threshold"]
+
+    robust_args = ["robustness", "--model", str(model), *calibration_args]
+    assert main([*args, *robust_args, "--ood", str(ood / "ood.json")]) == 0
+    robust = json.loads((tmp_path / "out" / "robustness" / "smoke" / "robustness.json").read_text())
+    assert robust["ood_gate"] is True and "phone" in robust["conditions"]
+    assert robust["conditions"]["clean"]["accuracy"] >= 0
+
+    metadata = tmp_path / "metadata.csv"
+    metadata.write_text("image,age_approx,anatom_site_general,lesion_id,sex\n0,40,,,male\n")
+    group_args = ["subgroups", "--model", str(model), *calibration_args]
+    assert main([*args, *group_args, "--metadata", str(metadata)]) == 0
+    groups = json.loads((tmp_path / "out" / "subgroups" / "smoke" / "subgroups.json").read_text())
+    assert groups["matched_metadata"] == 2  # 0.png in both test classes
+    assert groups["groups"]["sex"]["male"]["n_images"] == 2
     assert set(meta["files"]) == {"model.onnx", "head_weights.npz", "ood_stats.npz"}
     assert meta["calibration"] == {"temperature": fitted["temperature"], "fitted": True}
     assert meta["thresholds"]["malignant"] == fitted["thresholds"]["malignant"]
