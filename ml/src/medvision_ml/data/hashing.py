@@ -61,12 +61,6 @@ def hash_array(hashes: Iterable[int]) -> NDArray[np.uint64]:
     return np.array(rows, dtype=np.uint64).reshape(-1, _WORDS)
 
 
-def dhash_file(path: Path) -> int:
-    """Return the difference hash of an image file."""
-    with Image.open(path) as image:
-        return dhash(image)
-
-
 def hamming_distances(query: int, candidates: NDArray[np.uint64]) -> NDArray[np.int64]:
     """Return the Hamming distance between ``query`` and every row of ``candidates``.
 

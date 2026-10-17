@@ -59,7 +59,6 @@ def decide(
     malignant_indices: tuple[int, ...],
     thresholds: Thresholds,
     quality: QualityReport,
-    energy: float,
     distance: float | None = None,
 ) -> Decision:
     """Apply the safety rules to one image's calibrated probabilities.
@@ -76,11 +75,8 @@ def decide(
         reasons.append(Reason.TOO_BLURRY)
     if thresholds.max_noise is not None and quality.noise > thresholds.max_noise:
         reasons.append(Reason.TOO_NOISY)
-    gates = (
-        (thresholds.ood_energy, energy),
-        (thresholds.ood_mahalanobis, distance),
-    )
-    if any(limit is not None and score is not None and score > limit for limit, score in gates):
+    limit = thresholds.ood_mahalanobis
+    if limit is not None and distance is not None and distance > limit:
         reasons.append(Reason.OUT_OF_DISTRIBUTION)
 
     malignant = float(np.sum(probabilities[list(malignant_indices)])) if malignant_indices else 0.0

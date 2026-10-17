@@ -15,12 +15,12 @@ permissions:
 jobs:
   smoke:
     name: smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       LIVE_URL: ${{ vars.LIVE_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Smoke test the live site
         run: |

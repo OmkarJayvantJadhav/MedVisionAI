@@ -32,7 +32,7 @@ export const metaResponse = {
   malignant_classes: ["Melanoma"],
   image_size: 224,
   calibrated: false,
-  thresholds: { low_confidence: 0.5, malignant: 0.3, ood_energy: null, fitted: false },
+  thresholds: { low_confidence: 0.5, malignant: 0.3, fitted: false },
   max_upload_mb: 8,
   disclaimer: "Not a medical diagnosis. Please consult a qualified dermatologist.",
 };

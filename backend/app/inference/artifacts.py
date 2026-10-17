@@ -32,7 +32,6 @@ OOD_FILE = "ood_stats.npz"
 class Thresholds:
     low_confidence: float
     malignant: float
-    ood_energy: float | None
     min_brightness: float
     max_brightness: float
     min_sharpness: float
@@ -92,7 +91,6 @@ class ModelMeta:
             thresholds = Thresholds(
                 low_confidence=float(t["low_confidence"]),
                 malignant=float(t["malignant"]),
-                ood_energy=_optional_float(t["ood_energy"]),
                 min_brightness=float(t["min_brightness"]),
                 max_brightness=float(t["max_brightness"]),
                 min_sharpness=float(t["min_sharpness"]),

@@ -107,7 +107,6 @@ def meta(predictor: PredictorDep, settings: SettingsDep) -> MetaResponse:
         thresholds=ThresholdsOut(
             low_confidence=m.thresholds.low_confidence,
             malignant=m.thresholds.malignant,
-            ood_energy=m.thresholds.ood_energy,
             ood_mahalanobis=m.thresholds.ood_mahalanobis,
             max_noise=m.thresholds.max_noise,
             fitted=m.thresholds.fitted,
