@@ -29,6 +29,18 @@ describe("labels", () => {
     expect(verdict({ status: "rejected", risk_flag: "uncertain" }).tone).toBe("neutral");
   });
 
+  it("explains that unfamiliar photos cannot be assessed, rather than asking for a retake", () => {
+    const blurry = verdict({ status: "rejected", risk_flag: "uncertain", reasons: ["too_blurry"] });
+    const unfamiliar = verdict({
+      status: "rejected",
+      risk_flag: "uncertain",
+      reasons: ["out_of_distribution"],
+    });
+    expect(blurry.title).toBe("This photo could not be assessed");
+    expect(unfamiliar.title).toBe("This photo is outside what the model knows");
+    expect(unfamiliar.guidance).toMatch(/dermoscopy/);
+  });
+
   it("formats percentages", () => {
     expect(formatPercent(0.714)).toBe("71%");
     expect(formatPercent(0)).toBe("0%");

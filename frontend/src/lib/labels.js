@@ -45,7 +45,7 @@ export const REASONS = {
   too_dark: "The photo is too dark.",
   too_bright: "The photo is overexposed.",
   too_blurry: "The photo is too blurry.",
-  out_of_distribution: "It does not look like a close-up of a skin lesion.",
+  out_of_distribution: "It does not look like the dermoscopy images the model was trained on.",
   low_confidence: "The model's top answer is below its confidence threshold.",
   malignant_probability_above_threshold:
     "Classes that can be cancerous or pre-cancerous together passed the safety threshold.",
@@ -56,6 +56,14 @@ export const REASONS = {
  * wins over every other state, so a warning is never hidden behind "unsure".
  */
 export function verdict(result) {
+  if (result.status === "rejected" && result.reasons?.includes("out_of_distribution")) {
+    return {
+      tone: "neutral",
+      title: "This photo is outside what the model knows",
+      guidance:
+        "The model only learned from dermoscopy images: magnified, evenly lit close-ups taken with a dermatoscope. Other pictures, including ordinary phone photos of skin, cannot be assessed. Try one of the samples, and see a dermatologist about any spot that worries you.",
+    };
+  }
   if (result.status === "rejected") {
     return {
       tone: "neutral",

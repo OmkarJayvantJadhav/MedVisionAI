@@ -20,13 +20,15 @@ from PIL import Image
 BACKEND = Path(__file__).resolve().parents[2] / "backend"
 sys.path.insert(0, str(BACKEND))
 
+from app.inference.calibration import mahalanobis_distance, pooled_features  # noqa: E402
 from app.inference.cam import cam_from_features as serving_cam  # noqa: E402
 from app.inference.predictor import Predictor  # noqa: E402
 from app.inference.preprocessing import decode_image, prepare_input  # noqa: E402
+from medvision_ml.calibration.ood import fit_gaussian, mahalanobis  # noqa: E402
 from medvision_ml.config import AugmentationConfig, ModelConfig  # noqa: E402
 from medvision_ml.explainability.gradcam import gradcam  # noqa: E402
 from medvision_ml.export.onnx_export import Thresholds, export_model, sha256_file  # noqa: E402
-from medvision_ml.models.builder import build_model  # noqa: E402
+from medvision_ml.models.builder import POOL_LAYER, build_model  # noqa: E402
 
 SIZE = 64
 CLASSES = ["Acne", "Melanoma", "Nevus"]
@@ -37,6 +39,12 @@ def exported(tmp_path_factory: pytest.TempPathFactory) -> tuple[keras.Model, Pat
     keras.utils.set_random_seed(3)
     model = build_model(ModelConfig(), AugmentationConfig(), len(CLASSES), SIZE, weights=None)
     directory = tmp_path_factory.mktemp("export")
+    # Out-of-distribution statistics fitted on random images; the threshold is
+    # high enough that the gate never rejects the test images.
+    pooled = pool_model(model)(np.random.default_rng(5).uniform(0, 255, (16, SIZE, SIZE, 3)))
+    stats = tmp_path_factory.mktemp("ood") / "ood_stats.npz"
+    mean, precision = fit_gaussian(np.asarray(pooled), shrinkage=0.1)
+    np.savez(stats, mean=mean.astype(np.float32), precision=precision.astype(np.float32))
     export_model(
         model,
         directory,
@@ -45,9 +53,14 @@ def exported(tmp_path_factory: pytest.TempPathFactory) -> tuple[keras.Model, Pat
         model_version="test-v1",
         backbone="efficientnetb0",
         image_size=SIZE,
-        thresholds=Thresholds(min_sharpness=0.0),
+        thresholds=Thresholds(min_sharpness=0.0, ood_mahalanobis=1e12),
+        ood_stats=stats,
     )
     return model, directory
+
+
+def pool_model(model: keras.Model) -> keras.Model:
+    return keras.Model(model.input, model.get_layer(POOL_LAYER).output)
 
 
 def photo(seed: int, size: tuple[int, int]) -> np.ndarray:
@@ -129,3 +142,23 @@ def test_end_to_end_prediction_matches_keras(exported: tuple[keras.Model, Path])
     assert result.predicted_class == CLASSES[int(expected.argmax())]
     assert result.confidence == pytest.approx(float(expected.max()), abs=1e-4)
     assert result.explanation is not None
+
+
+def test_serving_ood_distance_matches_training_pipeline(
+    exported: tuple[keras.Model, Path],
+) -> None:
+    model, directory = exported
+    predictor = Predictor.from_directory(directory)
+    artifacts = predictor.artifacts
+    assert artifacts.ood_mean is not None and artifacts.ood_precision is not None
+    batch = np.stack([photo(seed, (SIZE, SIZE)) for seed in (21, 22, 23)]).astype(np.float32)
+    _, feature_maps = predictor._run(batch)
+    served = mahalanobis_distance(
+        pooled_features(feature_maps), artifacts.ood_mean, artifacts.ood_precision
+    )
+    expected = mahalanobis(
+        np.asarray(pool_model(model)(batch, training=False)),
+        artifacts.ood_mean,
+        artifacts.ood_precision,
+    )
+    np.testing.assert_allclose(served, expected, rtol=1e-3)

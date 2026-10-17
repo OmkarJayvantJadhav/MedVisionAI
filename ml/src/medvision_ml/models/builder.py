@@ -31,6 +31,7 @@ from medvision_ml.config import AugmentationConfig, Backbone, ModelConfig
 LOGGER = logging.getLogger(__name__)
 
 BACKBONE_LAYER = "backbone"
+POOL_LAYER = "pool"
 LOGITS_LAYER = "logits"
 PROBABILITIES_LAYER = "probabilities"
 
@@ -110,7 +111,7 @@ def build_model(
         scale, offset = spec.scaling
         x = keras.layers.Rescaling(scale, offset, name="input_scaling")(x)
     x = backbone(x, training=False)
-    x = keras.layers.GlobalAveragePooling2D(name="pool")(x)
+    x = keras.layers.GlobalAveragePooling2D(name=POOL_LAYER)(x)
     x = keras.layers.Dropout(model_config.dropout, name="dropout")(x)
     logits = keras.layers.Dense(num_classes, name=LOGITS_LAYER)(x)
     probabilities = keras.layers.Activation("softmax", dtype="float32", name=PROBABILITIES_LAYER)(

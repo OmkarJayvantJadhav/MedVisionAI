@@ -169,15 +169,47 @@ def _calibrate(args: argparse.Namespace, config: ProjectConfig) -> int:
     return 0
 
 
+def _fetch_non_skin(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.data.non_skin import download_non_skin
+
+    saved = download_non_skin(args.dest, args.count)
+    print(f"Saved {saved} photos and ATTRIBUTION.csv to {args.dest}")
+    return 0 if saved else 1
+
+
+def _fit_ood(args: argparse.Namespace, config: ProjectConfig) -> int:
+    from medvision_ml.calibration.calibrate import read_calibration
+    from medvision_ml.calibration.ood import fit_ood
+
+    temperature = 1.0
+    if args.calibration is not None:
+        temperature, _ = read_calibration(args.calibration)
+    report = fit_ood(
+        config,
+        args.model,
+        args.non_skin,
+        output_dir=args.output,
+        temperature=temperature,
+        trust_legacy_lambda=args.trust_legacy_model,
+    )
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.calibration.calibrate import read_calibration
+    from medvision_ml.calibration.ood import read_ood
     from medvision_ml.export.onnx_export import Thresholds, export_model
     from medvision_ml.models.io import load_class_names, load_model
 
-    temperature, thresholds = 1.0, Thresholds()
+    temperature = 1.0
+    fitted: dict[str, float] = {}
+    ood_stats: Path | None = None
     if args.calibration is not None:
         temperature, fitted = read_calibration(args.calibration)
-        thresholds = Thresholds(**fitted, fitted=True)
+    if args.ood is not None:
+        fitted["ood_mahalanobis"], ood_stats = read_ood(args.ood)
+    thresholds = Thresholds(**fitted, fitted=args.calibration is not None)
     model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
     class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))
     output = args.output or config.model_dir / "export" / args.version
@@ -192,6 +224,7 @@ def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
         thresholds=thresholds,
         temperature=temperature,
         calibration_fitted=args.calibration is not None,
+        ood_stats=ood_stats,
     )
     print(f"Exported to {result.directory}")
     print(f"Max ONNX/Keras probability difference: {result.max_probability_diff:.2e}")
@@ -238,6 +271,13 @@ def build_parser() -> argparse.ArgumentParser:
     isic.add_argument("--copy", action="store_true", help="copy files instead of hard-linking")
     isic.set_defaults(handler=_prepare_isic2019)
 
+    fetch = commands.add_parser(
+        "fetch-non-skin", help="download CC BY 2.0 Open Images photos for the OOD report"
+    )
+    fetch.add_argument("--dest", type=Path, required=True)
+    fetch.add_argument("--count", type=int, default=500)
+    fetch.set_defaults(handler=_fetch_non_skin)
+
     train = commands.add_parser("train", help="train a classifier")
     train.add_argument("--run-name", default=None)
     train.set_defaults(handler=_train)
@@ -245,6 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, handler, help_text in (
         ("evaluate", _evaluate, "evaluate a saved model on a split"),
         ("calibrate", _calibrate, "fit temperature and decision thresholds on validation"),
+        ("fit-ood", _fit_ood, "fit the out-of-distribution gate on train and validation"),
         ("gradcam", _gradcam, "explain one image with Grad-CAM"),
         ("export", _export, "export a model to ONNX serving artifacts"),
     ):
@@ -267,6 +308,22 @@ def build_parser() -> argparse.ArgumentParser:
                 type=Path,
                 default=None,
                 help="calibration.json from `calibrate`; ships its temperature and thresholds",
+            )
+            sub.add_argument(
+                "--ood",
+                type=Path,
+                default=None,
+                help="ood.json from `fit-ood`; ships the gate's statistics and threshold",
+            )
+        elif name == "fit-ood":
+            sub.add_argument(
+                "--non-skin", type=Path, required=True, help="folder of ordinary photos"
+            )
+            sub.add_argument(
+                "--calibration",
+                type=Path,
+                default=None,
+                help="calibration.json; its temperature is used for the comparison scores",
             )
         elif name == "calibrate":
             pass

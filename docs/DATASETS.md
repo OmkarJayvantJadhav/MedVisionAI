@@ -82,14 +82,20 @@ cd ml
 uv run medvision-ml train --run-name isic2019-effb0
 uv run medvision-ml evaluate --model artifacts/isic2019-effb0/model.keras
 uv run medvision-ml calibrate --model artifacts/isic2019-effb0/model.keras
-uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
-  --version skin-effb0-v2.0.0 --output export/skin-effb0-v2.0.0 \
+uv run medvision-ml fetch-non-skin --dest data/non_skin --count 500
+uv run medvision-ml fit-ood --model artifacts/isic2019-effb0/model.keras \
+  --non-skin data/non_skin \
   --calibration outputs/calibration/isic2019-effb0/calibration.json
+uv run medvision-ml export --model artifacts/isic2019-effb0/model.keras \
+  --version skin-effb0-v2.1.0 --output export/skin-effb0-v2.1.0 \
+  --calibration outputs/calibration/isic2019-effb0/calibration.json \
+  --ood outputs/ood/isic2019-effb0/ood.json
 ```
 
 `calibrate` fits the temperature and the decision thresholds on the validation
-split and reports them on the test split; `export --calibration` ships them in
-`model_meta.json`.
+split and reports them on the test split. `fit-ood` fits the
+out-of-distribution gate (below). `export --calibration --ood` ships both in
+the serving files.
 
 A GPU is used automatically when TensorFlow finds one (with mixed precision);
 otherwise training runs on the CPU.
@@ -104,6 +110,25 @@ appear in the version's *Output* tab. Every step, including the leakage check,
 stops the run if it fails. Decoded images can be cached on disk with
 `MEDVISION__DATA__CACHE_DIR=/path/to/cache`, because the full set needs about
 12 GB of memory.
+
+### Ordinary photos for the out-of-distribution check
+
+The model only knows dermoscopy images, so the app rejects uploads that look
+nothing like them. `fit-ood` fits a Gaussian to the pooled backbone features of
+the training images and sets the rejection threshold on the squared
+Mahalanobis distance so that 99% of validation images pass
+(`evaluation.target_in_distribution_acceptance`). The threshold uses lesion
+images only.
+
+To report how well the gate works, `fetch-non-skin` downloads 500 everyday
+photos from the [Open Images V4](https://storage.googleapis.com/openimages/web/index.html)
+validation set. Every image there is listed under
+[CC BY 2.0](https://creativecommons.org/licenses/by/2.0/). The selection is
+deterministic (the first image IDs by SHA-256), and the command writes an
+`ATTRIBUTION.csv` with each photo's author, title and source page. The photos
+are used for evaluation only and are not committed or redistributed. Some of
+them show people, so they also check that ordinary pictures of skin, as
+opposed to dermoscopy close-ups, are rejected.
 
 ### Sample images in the web app
 

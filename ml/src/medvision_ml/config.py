@@ -120,11 +120,21 @@ class EvaluationConfig:
     # Images whose top probability falls below the fitted threshold are reported
     # as low confidence; the rest reach this accuracy on validation.
     target_confident_accuracy: float = 0.85
+    # The out-of-distribution threshold lets this share of validation images
+    # through; covariance shrinkage keeps the feature Gaussian invertible.
+    target_in_distribution_acceptance: float = 0.99
+    ood_shrinkage: float = 0.01
 
     def __post_init__(self) -> None:
         if self.calibration_bins < 1:
             raise ConfigError("evaluation.calibration_bins must be positive.")
-        for name in ("target_malignant_recall", "target_confident_accuracy"):
+        if not 0 <= self.ood_shrinkage <= 1:
+            raise ConfigError("evaluation.ood_shrinkage must be within [0, 1].")
+        for name in (
+            "target_malignant_recall",
+            "target_confident_accuracy",
+            "target_in_distribution_acceptance",
+        ):
             if not 0 < getattr(self, name) <= 1:
                 raise ConfigError(f"evaluation.{name} must be within (0, 1].")
 

@@ -67,6 +67,8 @@ def test_environment_overrides_are_typed(tmp_path: Path) -> None:
         "training:\n  epochs_typo: 3\n",
         "- not a mapping\n",
         "training: [1, 2]\n",
+        "evaluation:\n  target_in_distribution_acceptance: 0\n",
+        "evaluation:\n  ood_shrinkage: 1.5\n",
     ],
 )
 def test_invalid_configs_are_rejected(tmp_path: Path, text: str) -> None:

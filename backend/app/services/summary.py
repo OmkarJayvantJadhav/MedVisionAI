@@ -17,7 +17,7 @@ _REJECTION_HINTS = {
     Reason.TOO_BRIGHT: "the photo is overexposed",
     Reason.TOO_BLURRY: "the photo is out of focus",
     Reason.OUT_OF_DISTRIBUTION: (
-        "it does not look like the skin-lesion images the model was trained on"
+        "it does not look like the dermoscopy images the model was trained on"
     ),
 }
 

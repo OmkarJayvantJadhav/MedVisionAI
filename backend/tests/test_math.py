@@ -5,7 +5,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from app.inference.artifacts import Thresholds
-from app.inference.calibration import energy_score, logits_from_features, softmax
+from app.inference.calibration import (
+    energy_score,
+    logits_from_features,
+    mahalanobis_distance,
+    pooled_features,
+    softmax,
+)
 from app.inference.cam import blend, cam_from_features, encode_png, jet, render_heatmap
 from app.inference.decision import Reason, RiskFlag, Status, decide
 from app.inference.quality import QualityReport, assess, laplacian_variance
@@ -129,3 +135,23 @@ def test_ood_gate_only_applies_once_fitted() -> None:
     decision = decide(probs(0.9, 0.05, 0.05), MALIGNANT, fitted, GOOD, energy=-1.0)
     assert decision.status is Status.REJECTED
     assert decision.reasons == (Reason.OUT_OF_DISTRIBUTION,)
+
+
+def test_mahalanobis_distance_of_pooled_features() -> None:
+    features = np.zeros((2, 2, 2, 3), dtype=np.float32)
+    features[1] = 1.0
+    pooled = pooled_features(features)
+    np.testing.assert_array_equal(pooled, [[0, 0, 0], [1, 1, 1]])
+    precision = np.diag([1.0, 4.0, 0.25])
+    np.testing.assert_allclose(mahalanobis_distance(pooled, np.zeros(3), precision), [0, 5.25])
+
+
+def test_feature_gate_rejects_distant_images() -> None:
+    gated = Thresholds(**{**vars(THRESHOLDS), "ood_mahalanobis": 100.0})
+    confident = probs(0.9, 0.05, 0.05)
+    assert decide(confident, MALIGNANT, gated, GOOD, -5.0, distance=99.0).status is Status.OK
+    decision = decide(confident, MALIGNANT, gated, GOOD, -5.0, distance=101.0)
+    assert decision.status is Status.REJECTED
+    assert decision.reasons == (Reason.OUT_OF_DISTRIBUTION,)
+    # Without a fitted threshold the distance is ignored.
+    assert decide(confident, MALIGNANT, THRESHOLDS, GOOD, -5.0, distance=1e9).status is Status.OK

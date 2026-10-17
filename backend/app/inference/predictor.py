@@ -11,7 +11,13 @@ import onnxruntime as ort
 from numpy.typing import NDArray
 
 from app.inference.artifacts import ModelArtifacts, load_artifacts
-from app.inference.calibration import energy_score, logits_from_features, softmax
+from app.inference.calibration import (
+    energy_score,
+    logits_from_features,
+    mahalanobis_distance,
+    pooled_features,
+    softmax,
+)
 from app.inference.cam import blend, cam_from_features, encode_png, render_heatmap
 from app.inference.decision import Decision, Reason, RiskFlag, Status, decide
 from app.inference.errors import ModelArtifactError
@@ -137,12 +143,22 @@ class Predictor:
         logits = logits_from_features(feature_maps, self.artifacts.kernel, self.artifacts.bias)
         probabilities = softmax(logits, self.meta.temperature)[0]
         energy = float(energy_score(logits, self.meta.temperature)[0])
+        distance = None
+        if self.artifacts.ood_mean is not None and self.artifacts.ood_precision is not None:
+            distance = float(
+                mahalanobis_distance(
+                    pooled_features(feature_maps),
+                    self.artifacts.ood_mean,
+                    self.artifacts.ood_precision,
+                )[0]
+            )
         decision: Decision = decide(
             probabilities,
             self.meta.malignant_indices,
             self.meta.thresholds,
             assess(batch[0]),
             energy,
+            distance,
         )
 
         order = np.argsort(probabilities)[::-1]

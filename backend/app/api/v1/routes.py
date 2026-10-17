@@ -108,6 +108,7 @@ def meta(predictor: PredictorDep, settings: SettingsDep) -> MetaResponse:
             low_confidence=m.thresholds.low_confidence,
             malignant=m.thresholds.malignant,
             ood_energy=m.thresholds.ood_energy,
+            ood_mahalanobis=m.thresholds.ood_mahalanobis,
             fitted=m.thresholds.fitted,
         ),
         max_upload_mb=settings.max_upload_mb,

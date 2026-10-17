@@ -2,7 +2,10 @@
 
 Expected directory layout (written by ``medvision-ml export``)::
 
-    model.onnx  head_weights.npz  model_meta.json
+    model.onnx  head_weights.npz  model_meta.json  [ood_stats.npz]
+
+``ood_stats.npz`` holds the mean and precision matrix of the pooled training
+features; it is required when the metadata sets ``ood_mahalanobis``.
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ SUPPORTED_META_FORMAT = 1
 MODEL_FILE = "model.onnx"
 WEIGHTS_FILE = "head_weights.npz"
 META_FILE = "model_meta.json"
+OOD_FILE = "ood_stats.npz"
 
 
 @dataclass(frozen=True)
@@ -33,6 +37,11 @@ class Thresholds:
     max_brightness: float
     min_sharpness: float
     fitted: bool
+    ood_mahalanobis: float | None = None
+
+
+def _optional_float(value: Any) -> float | None:
+    return None if value is None else float(value)
 
 
 @dataclass(frozen=True)
@@ -82,11 +91,12 @@ class ModelMeta:
             thresholds = Thresholds(
                 low_confidence=float(t["low_confidence"]),
                 malignant=float(t["malignant"]),
-                ood_energy=None if t["ood_energy"] is None else float(t["ood_energy"]),
+                ood_energy=_optional_float(t["ood_energy"]),
                 min_brightness=float(t["min_brightness"]),
                 max_brightness=float(t["max_brightness"]),
                 min_sharpness=float(t["min_sharpness"]),
                 fitted=bool(t["fitted"]),
+                ood_mahalanobis=_optional_float(t.get("ood_mahalanobis")),
             )
             return cls(
                 model_version=str(raw["model_version"]),
@@ -115,6 +125,9 @@ class ModelArtifacts:
     onnx_path: Path
     kernel: NDArray[np.float32]
     bias: NDArray[np.float32]
+    # Mean and precision of the pooled training features (out-of-distribution gate).
+    ood_mean: NDArray[np.float64] | None = None
+    ood_precision: NDArray[np.float64] | None = None
 
 
 def sha256_file(path: Path) -> str:
@@ -139,7 +152,8 @@ def load_artifacts(directory: Path, *, verify_checksums: bool = True) -> ModelAr
     except json.JSONDecodeError as error:
         raise ModelArtifactError(f"{meta_path} is not valid JSON") from error
 
-    for name in (MODEL_FILE, WEIGHTS_FILE):
+    gated = meta.thresholds.ood_mahalanobis is not None
+    for name in (MODEL_FILE, WEIGHTS_FILE, OOD_FILE) if gated else (MODEL_FILE, WEIGHTS_FILE):
         path = directory / name
         if not path.is_file():
             raise ModelArtifactError(f"Missing model file: {path}")
@@ -155,4 +169,21 @@ def load_artifacts(directory: Path, *, verify_checksums: bool = True) -> ModelAr
     n_classes = len(meta.class_names)
     if kernel.ndim != 2 or kernel.shape[1] != n_classes or bias.shape != (n_classes,):
         raise ModelArtifactError("Head weights do not match the number of classes.")
-    return ModelArtifacts(directory, meta, directory / MODEL_FILE, kernel, bias)
+    if not gated:
+        return ModelArtifacts(directory, meta, directory / MODEL_FILE, kernel, bias)
+
+    with np.load(directory / OOD_FILE) as stats:
+        mean = np.asarray(stats["mean"], dtype=np.float64)
+        precision = np.asarray(stats["precision"], dtype=np.float64)
+    features = kernel.shape[0]
+    if mean.shape != (features,) or precision.shape != (features, features):
+        raise ModelArtifactError("OOD statistics do not match the number of features.")
+    return ModelArtifacts(
+        directory,
+        meta,
+        directory / MODEL_FILE,
+        kernel,
+        bias,
+        ood_mean=mean,
+        ood_precision=precision,
+    )

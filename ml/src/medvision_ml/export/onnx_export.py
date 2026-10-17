@@ -8,8 +8,11 @@ The export directory contains:
 * ``head_weights.npz``: the Dense head ``kernel`` (K, C) and ``bias`` (C,). The
   backend derives logits as ``mean(feature_maps) @ kernel + bias`` and Grad-CAM
   as ``ReLU(feature_maps @ kernel[:, c])``.
+* ``ood_stats.npz`` (optional): ``mean`` (K,) and ``precision`` (K, K) of the
+  pooled training features. The backend rejects an image when the squared
+  Mahalanobis distance of ``mean(feature_maps)`` exceeds ``ood_mahalanobis``.
 * ``model_meta.json``: version, classes, input spec, calibration, thresholds and
-  SHA-256 checksums of the other two files.
+  SHA-256 checksums of the other files.
 
 """
 
@@ -18,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import shutil
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -51,6 +55,7 @@ class Thresholds:
     low_confidence: float = 0.50
     malignant: float = 0.30
     ood_energy: float | None = None
+    ood_mahalanobis: float | None = None
     min_brightness: float = 20.0
     max_brightness: float = 235.0
     min_sharpness: float = 5.0
@@ -164,13 +169,15 @@ def export_model(
     thresholds: Thresholds | None = None,
     temperature: float = 1.0,
     calibration_fitted: bool = False,
+    ood_stats: Path | None = None,
     parity_tolerance: float = 1e-4,
     seed: int = 0,
 ) -> ExportResult:
     """Write ``model.onnx``, ``head_weights.npz`` and ``model_meta.json``.
 
     The export is checked against Keras on random images before the metadata
-    is written.
+    is written. ``ood_stats`` (from ``fit-ood``) is copied alongside when given;
+    ``thresholds.ood_mahalanobis`` must then be set.
 
     Raises:
         ValueError: If inputs are inconsistent with the model.
@@ -184,6 +191,9 @@ def export_model(
         raise ValueError(f"Malignant classes not among class names: {missing}")
     if temperature <= 0:
         raise ValueError("temperature must be positive.")
+    gate = (thresholds or Thresholds()).ood_mahalanobis
+    if (ood_stats is None) != (gate is None):
+        raise ValueError("ood_stats and thresholds.ood_mahalanobis must be given together.")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     onnx_path = output_dir / "model.onnx"
@@ -193,6 +203,17 @@ def export_model(
     convert_to_onnx(model, onnx_path, image_size)
     kernel, bias = head_weights(model)
     np.savez(weights_path, kernel=kernel, bias=bias)
+    files = [onnx_path, weights_path]
+    if ood_stats is not None:
+        with np.load(ood_stats) as stats:
+            shapes = (stats["mean"].shape, stats["precision"].shape)
+        features = kernel.shape[0]
+        if shapes != ((features,), (features, features)):
+            raise ValueError(f"{ood_stats} does not match {features} backbone features.")
+        stats_path = output_dir / "ood_stats.npz"
+        if ood_stats.resolve() != stats_path.resolve():
+            shutil.copyfile(ood_stats, stats_path)
+        files.append(stats_path)
 
     images = np.random.default_rng(seed).uniform(0, 255, (4, image_size, image_size, 3))
     expected = np.asarray(model(images.astype(np.float32), training=False), dtype=np.float64)
@@ -223,18 +244,15 @@ def export_model(
         "calibration": {"temperature": temperature, "fitted": calibration_fitted},
         "thresholds": asdict(thresholds or Thresholds()),
         "parity": {"max_probability_diff": max_diff, "tolerance": parity_tolerance},
-        "files": {
-            onnx_path.name: {"sha256": sha256_file(onnx_path)},
-            weights_path.name: {"sha256": sha256_file(weights_path)},
-        },
+        "files": {path.name: {"sha256": sha256_file(path)} for path in files},
     }
     meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     LOGGER.info(
         "Exported %s to %s (max probability diff %.2e)", model_version, output_dir, max_diff
     )
+    written = {"onnx": onnx_path, "head_weights": weights_path, "meta": meta_path}
+    if ood_stats is not None:
+        written["ood_stats"] = files[-1]
     return ExportResult(
-        directory=output_dir,
-        meta=meta,
-        max_probability_diff=max_diff,
-        files={"onnx": onnx_path, "head_weights": weights_path, "meta": meta_path},
+        directory=output_dir, meta=meta, max_probability_diff=max_diff, files=written
     )
