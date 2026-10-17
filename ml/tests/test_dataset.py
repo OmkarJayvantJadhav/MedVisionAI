@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 from medvision_ml.config import DataConfig
-from medvision_ml.data.dataset import load_split
+from medvision_ml.data.dataset import cache_name, load_split
 
 from tests.conftest import MakeImage
 
@@ -55,3 +55,25 @@ def test_evaluation_split_keeps_file_order(tmp_path: Path, make_image: MakeImage
     assert len(split.file_paths) == N_IMAGES == len(labels)
     expected = [split.class_names.index(Path(p).parent.name) for p in split.file_paths]
     assert labels.tolist() == expected
+
+
+def test_disk_cache_is_not_reused_after_the_split_changes(
+    tmp_path: Path, make_image: MakeImage
+) -> None:
+    # Regression: the cache file was named after the split only, and tf.data
+    # read a stale cache back without checking it, so re-splitting and
+    # retraining on the same machine silently used the old images.
+    split_dir = make_split(tmp_path / "Train", make_image)
+    config = DataConfig(image_size=32, batch_size=BATCH, cache_dir=tmp_path / "cache")
+    first = load_split(split_dir, config, shuffle=False, seed=1)
+    before = sorted(batch_compositions(first.dataset))
+    assert cache_name(split_dir, 32) == cache_name(split_dir, 32)
+
+    for path in (split_dir / "A").iterdir():
+        path.unlink()
+    for i in range(N_IMAGES // 2):
+        make_image(split_dir / "A" / f"new{i:02d}.png", seed=100 + i, size=40)
+
+    second = load_split(split_dir, config, shuffle=False, seed=1)
+    assert sorted(batch_compositions(second.dataset)) != before
+    assert cache_name(split_dir, 32) != cache_name(split_dir, 64)
