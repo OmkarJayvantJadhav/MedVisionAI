@@ -162,8 +162,8 @@ Any published model, figure or report derived from this data must cite:
 
 | Artefact | Licence | Why |
 |---|---|---|
-| Source code | Decided with the original contributors (plan §13, question 2) | Independent of the data |
-| Trained model weights (`model.onnx`, `head_weights.npz`) | **CC BY-NC 4.0**, with the attribution above | Derived from CC BY-NC training data |
+| Source code | **MIT** ([`LICENSE`](../LICENSE)) | Independent of the data |
+| Trained model weights and gate statistics (`model.onnx`, `head_weights.npz`, `ood_stats.npz`) | **CC BY-NC 4.0**, with the attribution above | Derived from CC BY-NC training data |
 
 The live demo is a free, non-commercial educational project, which the licence
 permits. Commercial use of the weights would need a different dataset.

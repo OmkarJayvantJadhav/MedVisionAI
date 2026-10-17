@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "FastAPI inference service for MedVision AI (ONNX Runtime, no TensorFlow)."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
 dependencies = [
     "fastapi>=0.115",
     "numpy>=1.26",
