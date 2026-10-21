@@ -126,12 +126,11 @@ export default function App() {
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             Skin-lesion screening research
           </p>
-          <h1 className="reveal reveal-1 mt-6 text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.035em] sm:text-6xl">
+          {/* <h1 className="reveal reveal-1 mt-6 text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.035em] sm:text-6xl">
             See what the model sees.
-          </h1>
+          </h1> */}
           <p className="reveal reveal-2 mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">
-            Add a dermoscopy photo of a mole or spot. You get the closest matches, a calibrated
-            malignancy flag and a heatmap of what drove the result.
+            Add a dermoscopy photo of a spot.
           </p>
         </section>
 
