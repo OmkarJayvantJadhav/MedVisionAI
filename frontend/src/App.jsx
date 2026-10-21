@@ -6,7 +6,7 @@ import Disclaimer from "./components/Disclaimer.jsx";
 import ErrorAlert from "./components/ErrorAlert.jsx";
 import HeatmapViewer from "./components/HeatmapViewer.jsx";
 import Footer from "./components/Footer.jsx";
-// import { HowItWorks, ModelFacts, Privacy } from "./components/InfoSections.jsx";
+import { HowItWorks, ModelFacts, Privacy } from "./components/InfoSections.jsx";
 import { LockIcon, ShieldIcon, SparkIcon } from "./components/icons.jsx";
 import ResultCard from "./components/ResultCard.jsx";
 import TopBar from "./components/TopBar.jsx";
