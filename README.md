@@ -450,8 +450,6 @@ accuracy alone.
   in [docs/DATASETS.md](docs/DATASETS.md).
 - **Everyday photos** for the out-of-distribution report: Open Images V4 validation set
   (CC BY 2.0), downloaded with attribution by `medvision-ml fetch-non-skin`.
-- **Prototype:** this project grew out of an earlier prototype,
-  [Adiitya09/MedvisionAi](https://github.com/Adiitya09/MedvisionAi).
 - **Licences:** the source code is released under the [**MIT licence**](LICENSE). The model
   weights and gate statistics are released under **CC BY-NC 4.0**, because the training data is
   non-commercial.
