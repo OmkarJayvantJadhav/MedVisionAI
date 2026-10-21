@@ -95,13 +95,13 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
         </button>
       </div>
 
-      <label
+      {/* <label
         htmlFor={cameraId}
         className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-canvas transition hover:opacity-90 sm:hidden"
       >
         <CameraIcon className="h-[18px] w-[18px]" />
         Use camera
-      </label>
+      </label> */}
 
       <SampleRow busy={busy} onSample={onSample} />
       <p className="mt-4 text-center text-[11px] text-ink-faint">
