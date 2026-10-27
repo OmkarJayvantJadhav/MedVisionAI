@@ -124,7 +124,7 @@ export default function App() {
         <section className="mx-auto max-w-3xl px-4 pt-16 pb-12 text-center sm:pt-20">
           <p className="reveal inline-flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 text-xs font-semibold text-accent shadow-[var(--shadow-card)] ring-1 ring-line">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Skin-lesion screening research
+            Skin-cancer triage for dermoscopy images
           </p>
           {/* <h1 className="reveal reveal-1 mt-6 text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.035em] sm:text-6xl">
             See what the model sees.

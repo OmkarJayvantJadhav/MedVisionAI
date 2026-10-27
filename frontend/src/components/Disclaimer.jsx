@@ -1,7 +1,7 @@
 import { InfoIcon } from "./icons.jsx";
 
 export const DISCLAIMER =
-  "Not a medical diagnosis. This tool is for education and screening research only. " +
+  "Not a medical diagnosis or a medical device, and not clinically validated. " +
   "Please consult a qualified dermatologist about any skin concern.";
 
 export default function Disclaimer({ text = DISCLAIMER }) {

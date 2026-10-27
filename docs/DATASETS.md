@@ -141,7 +141,7 @@ opposed to dermoscopy close-ups, are rejected.
 ### Sample images in the web app
 
 `frontend/public/samples/` holds three ISIC 2019 images from the held-out test
-split (never used in training), resized to 640 px, so visitors can try the demo
+split (never used in training), resized to 640 px, so visitors can try the app
 without their own photo: ISIC_0000140 (melanoma), ISIC_0024885 (basal cell
 carcinoma) and ISIC_0000082 (melanocytic nevus). They are redistributed under
 CC BY-NC 4.0 with the attribution below.
@@ -165,8 +165,8 @@ Any published model, figure or report derived from this data must cite:
 | Source code | **MIT** ([`LICENSE`](../LICENSE)) | Independent of the data |
 | Trained model weights and gate statistics (`model.onnx`, `head_weights.npz`, `ood_stats.npz`) | **CC BY-NC 4.0**, with the attribution above | Derived from CC BY-NC training data |
 
-The live demo is a free, non-commercial educational project, which the licence
-permits. Commercial use of the weights would need a different dataset.
+The hosted app is non-commercial (no fees, ads or paid features), which the
+licence permits. Commercial use of the weights would need a different dataset.
 
 ## Planned evaluation-only data
 

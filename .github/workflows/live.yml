@@ -1,6 +1,6 @@
 name: Live site
 
-# Smoke-tests the public demo daily and on demand. Render deploys main by
+# Smoke-tests the live app daily and on demand. Render deploys main by
 # itself after CI passes (render.yaml); set the LIVE_URL repository variable
 # to the service URL to enable this check.
 
@@ -28,5 +28,5 @@ jobs:
             echo "::notice::Set the LIVE_URL repository variable to check the live site (see docs/deploy.md)."
             exit 0
           fi
-          # The free tier sleeps when idle; the first request wakes it (about a minute).
+          # The service sleeps when idle; the first request wakes it (about a minute).
           python3 .github/scripts/smoke_test.py "$LIVE_URL" frontend/public/samples/melanoma.jpg --wait 300

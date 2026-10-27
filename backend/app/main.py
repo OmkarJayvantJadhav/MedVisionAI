@@ -62,7 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="MedVision AI",
         version=__version__,
-        summary="Explainable skin-lesion classification for education and screening research.",
+        summary="Explainable, safety-gated skin-cancer triage for dermoscopy images.",
         description="Not a medical device. Predictions are not diagnoses.",
         lifespan=lifespan,
     )

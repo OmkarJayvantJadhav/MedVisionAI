@@ -66,7 +66,7 @@
             "type": "number"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -183,7 +183,7 @@
             "type": "array"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -238,7 +238,7 @@
             "type": "number"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis. This tool is for education and screening research only. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -426,7 +426,7 @@
   },
   "info": {
     "description": "Not a medical device. Predictions are not diagnoses.",
-    "summary": "Explainable skin-lesion classification for education and screening research.",
+    "summary": "Explainable, safety-gated skin-cancer triage for dermoscopy images.",
     "title": "MedVision AI",
     "version": "0.1.0"
   },

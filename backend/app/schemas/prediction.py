@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from app.inference.decision import Reason, RiskFlag, Status
 
 DISCLAIMER = (
-    "Not a medical diagnosis. This tool is for education and screening research only. "
+    "Not a medical diagnosis or a medical device, and not clinically validated. "
     "Please consult a qualified dermatologist about any skin concern."
 )
 
