@@ -141,8 +141,8 @@ opposed to dermoscopy close-ups, are rejected.
 ### Sample images in the web app
 
 `frontend/public/samples/` holds three ISIC 2019 images from the held-out test
-split (never used in training), resized to 640 px, so visitors can try the app
-without their own photo: ISIC_0000140 (melanoma), ISIC_0024885 (basal cell
+split (never used in training), resized to 640 px, so clinicians can try the app
+without their own image: ISIC_0000140 (melanoma), ISIC_0024885 (basal cell
 carcinoma) and ISIC_0000082 (melanocytic nevus). They are redistributed under
 CC BY-NC 4.0 with the attribution below.
 

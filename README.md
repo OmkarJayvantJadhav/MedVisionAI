@@ -2,12 +2,12 @@
 
 # MedVision AI
 
-**An explainable, safety-gated skin-cancer triage tool for dermoscopy images.**
+**A skin-cancer referral check for dermoscopy images.**
 
-Give it a dermoscopy image of a skin lesion and it answers one question: *should this
-lesion be seen by a dermatologist?* It catches 9 in 10 malignant lesions at its operating
-point, says how sure it is, shows where it looked, and refuses images it cannot judge.
-It runs on an ordinary CPU, with no GPU and no external services.
+MedVision AI helps a clinician with a dermatoscope answer one question about a skin
+lesion: *should it be referred to a dermatologist?* It flags 9 in 10 malignant lesions at
+its operating point, gives calibrated probabilities, shows where it looked, and refuses
+images it cannot judge. The clinician makes the decision.
 
 [![Open the app](https://img.shields.io/badge/Open_the_app-medvision--ai-0b6e75?style=for-the-badge)](https://medvision-ai-hguo.onrender.com)
 [![Model card](https://img.shields.io/badge/Model_card-read-12784a?style=for-the-badge)](docs/model_card.md)
@@ -33,9 +33,9 @@ The sample is an ISIC 2019 test image the model never saw in training.</sub> -->
 </div>
 
 > [!IMPORTANT]
-> **Not a medical device and not a diagnosis.** MedVision AI has not been clinically
-> validated. It helps decide whether a lesion needs a closer look; it does not replace a
-> dermatologist. Anyone worried about a skin lesion should see one.
+> **Decision support, not a diagnosis and not a medical device.** MedVision AI has not been
+> clinically validated. It supports a clinician's referral decision and never replaces it.
+> Anyone worried about a skin lesion should see a doctor.
 
 > [!NOTE]
 > The hosted app sleeps after 15 idle minutes, so the first request can take about a minute
@@ -46,10 +46,10 @@ The sample is an ISIC 2019 test image the model never saw in training.</sub> -->
 
 ## Contents
 
+- [Who it is for](#who-it-is-for)
 - [The problem](#the-problem)
 - [Objective and success criteria](#objective-and-success-criteria)
 - [Scope](#scope)
-- [Lightweight by design](#lightweight-by-design)
 - [What it does](#what-it-does)
 - [Using the app](#using-the-app)
 - [How it works](#how-it-works)
@@ -70,37 +70,56 @@ The sample is an ISIC 2019 test image the model never saw in training.</sub> -->
 
 ---
 
+## Who it is for
+
+| User | Situation |
+|---|---|
+| **General practitioners and primary-care nurses** with a dermatoscope | A patient shows a mole or spot; the clinician decides whether to refer |
+| **Teledermatology triage** | Dermoscopy images arrive from other sites and need sorting by urgency |
+| **Clinicians in training** | Learning how dermoscopic features relate to malignancy, with a heatmap to compare against |
+| **Researchers and engineers** | A reproducible, documented baseline for safe skin-lesion classification |
+
+**Not intended for the public.** Self-checks need a dermatoscope, which most people do not
+have; ordinary phone photos are refused by design.
+
 ## The problem
 
-Skin cancer is curable when it is caught early, and dermoscopy (magnified, evenly lit
-close-ups of a lesion) helps clinicians catch it. Image classifiers trained on dermoscopy
-can help with triage, but most published skin-lesion classifiers are not safe to put in
-front of people:
+Skin cancer is curable when it is caught early, and most suspicious lesions are first seen
+in primary care. There, clinicians decide which lesions to refer to a dermatologist. Refer
+too few and a melanoma is delayed; refer too many and dermatology waiting lists grow for
+lesions that were benign all along. Dermoscopy improves that decision, but it takes
+training and experience to read.
 
-- **They answer everything.** A photo of a cat or a blurry screenshot still gets a confident
-  diagnosis.
+Image classifiers trained on dermoscopy could support the decision, but most published ones
+are not safe to use for it:
+
+- **They answer everything.** A clinical photo, a blurry image or a picture of something
+  else still gets a confident answer.
 - **They hide their misses.** A headline accuracy says nothing about how many cancers go
   unflagged, or for whom.
 - **Their confidence means nothing.** "92%" is a raw score, not a probability.
-- **They are black boxes.** Nobody can see what the model looked at.
-- **They are hard to run.** Many need a GPU or a paid API, so they never leave the notebook.
+- **They answer the wrong question.** A single top-1 diagnosis can say "nevus" while the
+  combined probability of malignancy is high enough to refer.
+- **They are black boxes.** The clinician cannot see what the model looked at.
 
 ## Objective and success criteria
 
-Build an **open, reproducible triage tool** that answers one question for a dermoscopy
-image, *"should this lesion be seen by a dermatologist?"*, and is honest about everything
-it cannot do. It supports the decision to seek care; it never makes a diagnosis.
+Build an **open, reproducible referral check** for dermoscopy images of a single lesion.
+For each image it returns one of four answers, always in this order of priority:
+**refer** (possible malignancy), **unsure**, **no flag**, or **not assessed**, with
+calibrated probabilities and a heatmap. It supports the clinician's referral decision; it
+never makes a diagnosis.
 
 | # | Objective | Success criterion | Status (model-v2.2.0, test split) |
 |---|---|---|---|
-| 1 | **Catch cancers** | Malignant-group recall ≥ 0.90 at the operating point | ✅ 0.904 |
+| 1 | **Catch cancers** | Malignant-group recall ≥ 0.90 at the referral threshold, with the referral rate it causes reported | ✅ 0.904, 49% of test images flagged |
 | 2 | **Honest confidence** | Calibration error (ECE) ≤ 0.05 | ✅ 0.026 |
-| 3 | **Refuse what it cannot judge** | ≥ 99% of non-dermoscopy photos rejected while ≥ 98% of lesion images pass | ✅ 99.6% rejected, 98.4% pass |
+| 3 | **Refuse what it cannot judge** | ≥ 99% of non-dermoscopy images rejected while ≥ 98% of lesion images pass | ✅ 99.6% rejected, 98.4% pass |
 | 4 | **No silent failures** | Damaged images are rejected rather than silently misread | ✅ noise: 0% silent misses · ⚠️ JPEG quality 10: 25% |
 | 5 | **Explain itself** | A heatmap for every answer, matching TensorFlow Grad-CAM (cosine ≥ 0.99) | ✅ parity test in CI |
 | 6 | **Report its weaknesses** | Robustness and subgroup results regenerated by one command | ✅ `make evaluate` and the [model card](docs/model_card.md) |
 | 7 | **Run anywhere** | CPU-only inference in one container under 512 MB, no external calls or API keys | ✅ about 30 ms per image, about 170 MB of memory |
-| 8 | **Classify well** | Macro F1 ≥ 0.72 and melanoma top-1 recall ≥ 0.70 | ❌ 0.508 and 0.435: next on the [roadmap](#roadmap) |
+| 8 | **Classify well** | Macro F1 ≥ 0.72 and melanoma top-1 recall ≥ 0.70, which also lowers the referral rate | ❌ 0.508 and 0.435: next on the [roadmap](#roadmap) |
 
 The objectives are ranked. A change that improves accuracy but lowers cancer recall, or
 makes the model more confident or less honest, is not accepted.
@@ -109,81 +128,71 @@ makes the model more confident or less honest, is not accepted.
 
 **In scope**
 
-- Dermoscopy images of a **single skin lesion**: JPEG, PNG or WebP, up to 8 MB.
-- The **8 ISIC 2019 categories**: actinic keratosis, basal cell carcinoma, benign keratosis,
-  dermatofibroma, melanocytic nevus, melanoma, squamous cell carcinoma, vascular lesion.
-- A **triage verdict** (possible malignancy, unsure, no flag, or photo not assessed), with
-  calibrated scores, a heatmap and a fixed plain-language summary.
-- **Anonymous** use: the image is processed in memory and discarded.
+- **Dermoscopy images of a single skin lesion**, taken with a dermatoscope: JPEG, PNG or
+  WebP, up to 8 MB.
+- **One decision:** whether the lesion should be referred to a dermatologist, expressed as
+  refer, unsure, no flag or not assessed.
+- **Supporting detail:** calibrated probabilities for the 8 ISIC 2019 lesion types (actinic
+  keratosis, basal cell carcinoma, benign keratosis, dermatofibroma, melanocytic nevus,
+  melanoma, squamous cell carcinoma, vascular lesion), the combined malignancy probability
+  against the referral threshold, a heatmap and a fixed summary.
+- **Anonymous, stateless use:** the image is processed in memory and discarded.
 
 **Out of scope, by design**
 
 | Not included | Why |
 |---|---|
-| Diagnosis, treatment or medical advice | Only a clinician can diagnose; the tool is not a medical device, has not been clinically validated, and says so on every screen |
-| Ordinary phone photos, rashes, eczema, infections and the thousands of other skin conditions | No openly licensed, expert-labelled data at the needed scale; these photos are rejected instead of guessed at |
+| Diagnosis, treatment or management advice | The output supports a referral decision; the diagnosis belongs to the dermatologist |
+| Self-checks by the public, ordinary phone or clinical photos | The model only learned from dermoscopy; other images are refused rather than guessed at |
+| Rashes, infections, inflammatory and other non-lesion conditions | Different problem, different data; they are not lesions to triage for cancer |
+| Rare skin cancers outside the 8 classes (for example Merkel cell carcinoma) | No training data; the model cannot recognise them, so a "no flag" never rules them out |
 | Text generated by a language model | The summary restates the model's output from a fixed template, so it can never invent a claim |
-| Accounts, history or stored images | No patient data is kept anywhere |
+| Accounts, patient records or stored images | No patient data is kept anywhere |
 | Commercial use | The training data, and so the model weights, are licensed for non-commercial use only |
-
-## Lightweight by design
-
-The whole service is one container that needs no GPU, no database and no outside service:
-
-- **Small model.** EfficientNet-B0 exported to ONNX (16 MB) on ONNX Runtime. An analysis
-  takes about 30 ms on a laptop CPU, and the container uses about 170 MB of memory.
-- **One forward pass does everything.** The prediction, the heatmap and the
-  out-of-distribution check all come from the same model output.
-- **No TensorFlow in serving.** TensorFlow is only used offline for training; the server
-  runs ONNX Runtime and NumPy.
-- **Private by construction.** Images are processed in memory and discarded; nothing is
-  stored, logged or sent anywhere.
 
 ## What it does
 
 | | |
 |---|---|
-| **Classifies** | 8 conditions from the ISIC 2019 dataset: actinic keratosis, basal cell carcinoma, benign keratosis, dermatofibroma, melanocytic nevus, melanoma, squamous cell carcinoma, vascular lesion |
+| **Flags for referral** | A referral flag when the four malignant and pre-malignant classes together pass a fitted threshold, even if a benign class ranks first |
 | **Calibrates** | Temperature scaling makes a "70%" mean right about 70% of the time (calibration error 0.026) |
-| **Flags risk** | A malignancy warning when the four cancer-related classes add up past a fitted threshold, even if a benign class ranks first |
-| **Rejects** | Non-dermoscopy photos (out-of-distribution check), grainy photos (noise check), and dark, washed-out or blurry photos (quality checks) |
+| **Shows its working** | The closest lesion types with calibrated probabilities, and a gauge of the combined malignancy probability with the referral threshold marked |
+| **Rejects** | Non-dermoscopy images (out-of-distribution check), grainy images (noise check), and dark, washed-out or blurry images (quality checks) |
 | **Explains** | A heatmap overlay with an opacity slider, computed from the same forward pass |
 | **Respects privacy** | Images are processed in memory and never stored or logged; no accounts, no tracking, self-hosted fonts |
-| **Works anywhere** | Drag and drop, paste or file picker; light and dark themes; phones and desktops; keyboard accessible |
-
-
+| **Runs on modest hardware** | EfficientNet-B0 in ONNX (16 MB) on a CPU, about 30 ms per image; one container, no external calls |
 
 ## Using the app
 
-1. **Add a photo.** Drop it on the card, browse your files or paste it with Ctrl+V.
-   No photo to hand? Pick one of the three samples (held-out ISIC 2019 test images).
-2. **Watch it being analysed.** The photo appears straight away, with a scanning line while
+1. **Add a dermoscopy image.** Drop it on the card, browse your files or paste it with
+   Ctrl+V. No image to hand? Pick one of the three samples (held-out ISIC 2019 test images).
+2. **Watch it being analysed.** The image appears straight away, with a scanning line while
    the three steps run: quality check, model, heatmap.
-3. **Read the verdict first.** One of four outcomes leads the result, always in this order of
+3. **Read the answer first.** One of four outcomes leads the result, always in this order of
    priority:
 
-   | Verdict | When | What it tells you |
+   | Answer | When | What it means for the clinician |
    |---|---|---|
-   | **Possible malignancy** | Cancer-related classes add up past the fitted threshold | See a dermatologist and show them this spot |
-   | **Unsure** | Top confidence below the fitted threshold | Try a sharper, closer photo; see a doctor if the spot changes |
-   | **No malignancy flag** | Neither of the above | Nothing flagged, which does not rule anything out |
-   | **Photo not assessed** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that the model only knows dermoscopy images |
+   | **Refer: possible malignancy** | Malignant and pre-malignant classes together pass the referral threshold | Consider referral to a dermatologist |
+   | **Unsure** | Top confidence below the fitted threshold | Retake the image if it is poor; refer on clinical grounds if the lesion is new, changing or bleeding |
+   | **No malignancy flag** | Neither of the above | The threshold was not reached; this does not rule out malignancy |
+   | **Not assessed** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that only dermoscopy images can be assessed |
 
-4. **Look closer.** Below the verdict: the closest match, the top three with calibrated
-   percentages, and the cancer-related gauge with its threshold marker. On the photo itself,
+4. **Look closer.** Below the answer: the closest lesion type, the top three with calibrated
+   percentages, and the malignancy gauge with the referral threshold marked. On the image,
    the heatmap shows where the model looked; toggle it or change its opacity.
 5. **Technical details**, folded away, show the status, risk flag, summary, model version and
    processing time.
 
 The interface is one card that changes state rather than a page of panels. It works in light
-and dark mode, by keyboard and with a screen reader, and on a phone, where the verdict comes
-before the photo.
+and dark mode, by keyboard and with a screen reader, and on a phone or tablet, where the
+answer comes before the image.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    U(["Photo upload"]) --> D["Decode and validate<br/>type, size, orientation"]
+    U(["Dermoscopy image"]) --> D["Decode and validate<br/>type, size, orientation"]
     D --> R["Resize to 224 px<br/>same as training"]
     R --> Q{"Quality checks<br/>brightness, sharpness, noise"}
     Q -- fail --> X(["Rejected:<br/>what to fix"])
@@ -193,7 +202,7 @@ flowchart LR
     O -- far --> Y(["Rejected:<br/>not a dermoscopy image"])
     O -- near --> L["Logits and<br/>temperature scaling"]
     L --> S{"Safety rules"}
-    S --> V(["Verdict, top 3,<br/>risk gauge"])
+    S --> V(["Referral answer, top 3,<br/>malignancy gauge"])
     F --> C["Class activation map<br/>NumPy, no TensorFlow"]
     C --> H(["Heatmap overlay"])
 ```
@@ -205,8 +214,8 @@ flowchart LR
 3. **Gate.** Brightness, sharpness and a sensor-noise estimate reject unusable photos.
 4. **Classify.** One ONNX Runtime call returns the feature maps. The logits, the
    out-of-distribution distance and the heatmap are all derived from that one result.
-5. **Decide.** Calibrated probabilities pass through the safety rules below. The response
-   always carries the disclaimer and a plain-language summary.
+5. **Decide.** Calibrated probabilities pass through the safety rules below and become one
+   referral answer. The response always carries the disclaimer and a fixed summary.
 
 ## Architecture at a glance
 
@@ -236,14 +245,14 @@ split**. All of them ship inside the versioned model release (`model_meta.json`)
 
 | Rule | How it is set | Effect on the 2,527 test images |
 |---|---|---|
-| **Malignancy flag**: melanoma + BCC + SCC + actinic keratosis probability ≥ threshold | Catch 90% of malignant validation images | **90.4%** of malignant cases flagged, precision 68.1% |
+| **Referral flag**: melanoma + BCC + SCC + actinic keratosis probability ≥ threshold | Catch 90% of malignant validation images | **90.4%** of malignant cases flagged, precision 68.1%, 49% of images flagged |
 | **Low confidence**: top probability below threshold | Confident answers must be ≥ 85% accurate on validation | 59% answered confidently, 86.9% of those correct |
 | **Out-of-distribution**: Mahalanobis distance of the image features from the training images | 99% of validation images pass | 98.9% of lesions pass; **99.6%** of 497 everyday photos rejected |
 | **Noise check**: sensor noise measured in the image's smoothest patches | 99% of validation images pass | Cancers missed silently on noisy photos: **49% → 0%** |
 | **Quality checks**: brightness and sharpness | Fixed, conservative bounds | Black, washed-out and featureless images rejected |
 
-The verdict order is deliberate. A malignancy warning outranks "unsure", which outranks
-"no flag", so a warning is never hidden behind uncertainty. A rejected photo gets an
+The answer order is deliberate. A referral flag outranks "unsure", which outranks
+"no flag", so a warning is never hidden behind uncertainty. A rejected image gets an
 explanation of *why* ("too grainy", "not a dermoscopy image") instead of a guess.
 
 ## Results
@@ -264,7 +273,7 @@ split of 2,527 images. Every number here is regenerated by `make evaluate`.
 | ROC-AUC (one-vs-rest) | 0.935 |
 | Malignant-group ROC-AUC | 0.916 |
 | Calibration error (ECE) | 0.026 |
-| Malignant recall at the flag | **0.904** |
+| Malignant recall at the referral flag | **0.904** |
 
 </td><td valign="top">
 
@@ -291,7 +300,7 @@ damage, with all checks active:
 |---|---|---|---|---|---|---|---|
 | 9.3% | 7.7% | 9.9% | 13.6% | 12.1% | **0%** | **0%** | 25.1% |
 
-**By patient group.** Malignancy-flag recall: men 0.95, women 0.84, ages 30–49 0.76,
+**By patient group.** Referral-flag recall: men 0.95, women 0.84, ages 30–49 0.76,
 ages 70+ 0.95, lower limbs 0.82. Skin type is not recorded in ISIC 2019, so performance
 on darker skin is **unknown**. The [model card](docs/model_card.md) states this plainly.
 
@@ -481,10 +490,17 @@ MedVisionAI/
 
 ## Limitations
 
+- **High referral rate.** To catch 90% of malignant lesions, the flag fires on about half
+  of the test images. ISIC 2019 is rich in cancers (37% of test images are malignant); in
+  primary care, where cancers are rarer, a smaller share of flagged lesions would be
+  malignant.
 - **Moderate accuracy.** Top-1 recall is low for melanoma (0.43) and squamous cell
-  carcinoma (0.17). That is why safety relies on the combined malignancy flag, which
-  flags about half of all images.
-- **Dermoscopy only.** Ordinary phone photos are rejected by design.
+  carcinoma (0.17). That is why the referral answer relies on the combined malignancy
+  probability, not on the top class.
+- **Dermoscopy only.** Clinical and phone photos are rejected by design.
+- **Eight lesion types only.** Rarer skin cancers (for example Merkel cell carcinoma or
+  melanoma subtypes that are rare in the training data) may be missed;
+  a "no flag" answer never rules out malignancy.
 - **Heavy JPEG compression** (quality 10) still causes silent misses (25%).
 - **Unequal recall** for women, ages 30–49 and the lower limbs; **unknown** performance
   on darker skin.
@@ -499,9 +515,9 @@ MedVisionAI/
 | Inference API, calibration, safety and input gates | ✅ Done |
 | Web app, Docker image, CI and live deployment | ✅ Done |
 | Robustness and subgroup evaluation, model card | ✅ Done |
-| **Stronger model**: larger backbone, higher resolution, full fine-tuning, tracked in MLflow, on a Kaggle GPU | Next: objective 8 |
+| **Stronger model**: larger backbone, higher resolution, full fine-tuning, tracked in MLflow, on a Kaggle GPU; aims to keep recall at 0.90 with fewer referrals | Next: objective 8 |
 | **Catch heavy JPEG compression** in the input gates | Planned: objective 4 |
-| External validation on darker skin tones | Open: needs licensed dermoscopy data with skin-type labels |
+| External validation on another dermoscopy dataset, including darker skin | Open: needs licensed data with skin-type labels |
 
 A new model replaces the current one only if it keeps malignant recall at 0.90 or higher.
 Among those, the highest macro F1 wins, then the lowest calibration error. Accuracy alone
@@ -532,6 +548,6 @@ never decides.
 
 <div align="center">
 <br>
-<sub>Explainable, safety-gated skin-cancer triage, from data to deployment.<br>
-<b>Not a medical device.</b> Always consult a qualified dermatologist.</sub>
+<sub>A skin-cancer referral check for dermoscopy images, from data to deployment.<br>
+<b>Decision support, not a medical device.</b> The referral decision rests with the clinician.</sub>
 </div>

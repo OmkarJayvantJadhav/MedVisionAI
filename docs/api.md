@@ -44,6 +44,11 @@ Interactive documentation is served at `/docs` (Swagger UI) and the schema at
   malignant and pre-malignant classes reaches its threshold, even if a benign
   class ranks first; `uncertain` for rejected or low-confidence images;
   otherwise `benign`.
+- **Referral answer.** Clients turn `status` and `risk_flag` into one answer,
+  in this order of priority: `risk_flag == "malignant_suspected"` → **refer**;
+  `status == "rejected"` → **not assessed**; `status == "low_confidence"` →
+  **unsure**; otherwise → **no flag**. A referral flag is never hidden behind
+  "unsure". The web app implements this in `frontend/src/lib/labels.js`.
 - `/explain` adds `explained_class`, `heatmap_png` and `overlay_png`
   (base64-encoded PNGs at display size).
 
