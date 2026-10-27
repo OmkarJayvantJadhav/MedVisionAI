@@ -1,6 +1,13 @@
 # Architecture
 
-MedVision AI has two halves that share nothing at runtime:
+MedVision AI is a free, explainable research prototype of a triage aid for dermoscopy
+images. Its job is to
+answer *"should this lesion be seen by a dermatologist?"* honestly, and to refuse
+images it cannot judge (objective and scope: [PROJECT_PLAN.md §1](PROJECT_PLAN.md#1-problem-objective-and-scope)).
+Every part of the design follows from two constraints: **safety first** and
+**$0 to run**.
+
+The system has two halves that share nothing at runtime:
 
 - **`ml/`**, an offline TensorFlow pipeline that trains, evaluates, calibrates and exports
   a model release;
@@ -47,7 +54,7 @@ flowchart TB
 | `app/inference/calibration.py` | Logits from pooled features, temperature-scaled softmax, Mahalanobis distance |
 | `app/inference/decision.py` | The safety rules: rejection reasons, low confidence, malignancy flag, risk verdict |
 | `app/inference/cam.py` | Class activation map, colour map, overlay, fast PNG encoding |
-| `app/services/summary.py` | Plain-language summary behind a `SummaryProvider` interface (template today) |
+| `app/services/summary.py` | Plain-language summary from a fixed template that only restates the prediction; no generated text |
 
 ### Frontend
 
@@ -197,3 +204,19 @@ flowchart LR
 - The smoke test checks readiness, the home page, `/predict` and `/explain`. It also
   checks that a generated non-skin image and a grainy image are rejected, and reports
   p95 latency. See [deploy.md](deploy.md).
+
+## Designed for free tiers
+
+| Constraint | Design choice |
+|---|---|
+| Free hosting has no GPU and a fraction of one CPU | EfficientNet-B0 exported to ONNX (16 MB) on ONNX Runtime; one inference thread on Render |
+| 512 MB of memory | No TensorFlow in the image; the container uses about 170 MB |
+| One forward pass must do everything | Logits, the heatmap and the out-of-distribution distance all come from the same `feature_maps` output |
+| The service sleeps after 15 idle minutes | The model files are baked into the image, so waking up needs no download; the model loads once at startup |
+| No paid database or storage | Stateless requests; images live in memory only; model files come from GitHub Releases |
+| No API keys | No external calls at all; fonts are self-hosted |
+| Free GPU hours are limited | Training runs as a background Kaggle notebook that only calls the tested CLI |
+
+What it deliberately does not do (other skin conditions, phone photos, generated text,
+accounts) is listed with reasons in the plan's
+[scope table](PROJECT_PLAN.md#scope).
