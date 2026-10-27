@@ -36,7 +36,8 @@ class TemplateSummaryProvider:
             because = " and ".join(problems) or "the image could not be assessed"
             return (
                 f"The image could not be assessed reliably because {because}. "
-                "Try again with a sharp, well-lit close-up of the lesion."
+                "Retake the dermoscopy image in focus and evenly lit, with the lesion filling "
+                "the frame."
             )
 
         top = prediction.top_k[0]
@@ -51,12 +52,15 @@ class TemplateSummaryProvider:
 
         if prediction.risk_flag is RiskFlag.MALIGNANT_SUSPECTED:
             sentence += (
-                f" Classes that can be cancerous or pre-cancerous together reach "
-                f"{prediction.malignant_probability:.0%}, so a prompt in-person check by a "
-                "dermatologist is recommended."
+                f" Malignant and pre-malignant classes together reach "
+                f"{prediction.malignant_probability:.0%}, above the referral threshold, so "
+                "referral to a dermatologist should be considered."
             )
         elif prediction.risk_flag is RiskFlag.UNCERTAIN:
-            sentence += " If the lesion changes, bleeds or worries you, see a dermatologist."
+            sentence += (
+                " If the lesion is new, changing or bleeding, consider referral to a "
+                "dermatologist on clinical grounds."
+            )
         if not prediction.calibrated:
             sentence += " Percentages are uncalibrated model scores, not true probabilities."
         return sentence

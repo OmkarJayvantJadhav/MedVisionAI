@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import { explainResponse, imageFile, jsonResponse, metaResponse } from "./test/fixtures.js";
 
-const VERDICT = "Possible malignancy: please see a dermatologist";
+const VERDICT = "Refer: possible malignancy";
 
 function mockApi({ explain = () => jsonResponse(explainResponse) } = {}) {
   const fetchMock = vi.fn((url) => {

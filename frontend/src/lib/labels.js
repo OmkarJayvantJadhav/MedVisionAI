@@ -17,7 +17,7 @@ export const STATUS = {
 
 export const RISK = {
   malignant_suspected: {
-    label: "Possible malignancy: see a dermatologist",
+    label: "Malignancy suspected",
     tone: "danger",
   },
   benign: { label: "No malignancy flag", tone: "positive" },
@@ -57,40 +57,40 @@ export function verdict(result) {
   if (result.status === "rejected" && result.reasons?.includes("out_of_distribution")) {
     return {
       tone: "neutral",
-      title: "This photo is outside what the model knows",
+      title: "Not a dermoscopy image: not assessed",
       guidance:
-        "The model only learned from dermoscopy images: magnified, evenly lit close-ups taken with a dermatoscope. Other pictures, including ordinary phone photos of skin, cannot be assessed. Try one of the samples, and see a dermatologist about any spot that worries you.",
+        "The model only assesses dermoscopy images of a single lesion, taken with a dermatoscope. Clinical and phone photos cannot be assessed, so base the referral decision on your clinical assessment.",
     };
   }
   if (result.status === "rejected") {
     return {
       tone: "neutral",
-      title: "This photo could not be assessed",
+      title: "This image could not be assessed",
       guidance:
-        "Retake it in good light, in focus, with the spot filling most of the frame, then try again.",
+        "Retake the dermoscopy image in focus and evenly lit, with the lesion filling most of the frame, then try again.",
     };
   }
   if (result.risk_flag === "malignant_suspected") {
     return {
       tone: "danger",
-      title: "Possible malignancy: please see a dermatologist",
+      title: "Refer: possible malignancy",
       guidance:
-        "The model flagged patterns it associates with skin cancer or pre-cancer. Only a clinician can tell what this is, so please book a dermatologist appointment and show them this spot.",
+        "The combined probability of malignant and pre-malignant lesion types passed the referral threshold. Consider referral to a dermatologist; the decision rests on your clinical assessment.",
     };
   }
   if (result.status === "low_confidence") {
     return {
       tone: "caution",
-      title: "The model is unsure about this photo",
+      title: "Unsure: the model cannot decide",
       guidance:
-        "Try a sharper, closer, well-lit photo. If the spot is new, changing, bleeding or itching, see a dermatologist whatever the result.",
+        "Retake the image if its quality is poor. If the lesion is new, changing, bleeding or otherwise concerning, refer on clinical grounds whatever the result.",
     };
   }
   return {
     tone: "positive",
     title: "No malignancy flag",
     guidance:
-      "The model did not flag signs it associates with skin cancer. This does not rule anything out: see a dermatologist if the spot changes in size, shape or colour.",
+      "The referral threshold was not reached. This does not rule out malignancy, including cancers outside the eight lesion types the model knows: decide on the history, examination and any change over time.",
   };
 }
 

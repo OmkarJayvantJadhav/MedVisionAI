@@ -67,7 +67,7 @@ def test_rejected_summary_explains_why(reasons: tuple[Reason, ...], phrase: str)
     text = SUMMARY.summarise(
         prediction(status=Status.REJECTED, risk_flag=RiskFlag.UNCERTAIN, reasons=reasons)
     )
-    assert phrase in text and "Try again" in text
+    assert phrase in text and "Retake" in text
 
 
 def test_summaries_never_claim_a_diagnosis() -> None:

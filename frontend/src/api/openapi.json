@@ -66,7 +66,7 @@
             "type": "number"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Decision support for clinicians: not a diagnosis or a medical device, and not clinically validated. The referral decision rests with the clinician.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -183,7 +183,7 @@
             "type": "array"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Decision support for clinicians: not a diagnosis or a medical device, and not clinically validated. The referral decision rests with the clinician.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -238,7 +238,7 @@
             "type": "number"
           },
           "disclaimer": {
-            "default": "Not a medical diagnosis or a medical device, and not clinically validated. Please consult a qualified dermatologist about any skin concern.",
+            "default": "Decision support for clinicians: not a diagnosis or a medical device, and not clinically validated. The referral decision rests with the clinician.",
             "title": "Disclaimer",
             "type": "string"
           },
