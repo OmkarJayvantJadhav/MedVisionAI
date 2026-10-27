@@ -36,8 +36,8 @@ describe("labels", () => {
       risk_flag: "uncertain",
       reasons: ["out_of_distribution"],
     });
-    expect(blurry.title).toBe("This photo could not be assessed");
-    expect(unfamiliar.title).toBe("This photo is outside what the model knows");
+    expect(blurry.title).toBe("This image could not be assessed");
+    expect(unfamiliar.title).toBe("Not a dermoscopy image: not assessed");
     expect(unfamiliar.guidance).toMatch(/dermoscopy/);
   });
 

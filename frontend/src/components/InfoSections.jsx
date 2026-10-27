@@ -17,16 +17,16 @@ function Eyebrow({ children }) {
 
 const STEPS = [
   {
-    title: "Check the photo",
+    title: "Check the image",
     text: "Dark, blurry, grainy or non-dermoscopy images are turned away instead of guessed at.",
   },
   {
     title: "Classify",
-    text: "A neural network scores eight conditions; temperature scaling keeps the percentages honest.",
+    text: "A neural network scores eight lesion types; temperature scaling keeps the percentages honest.",
   },
   {
-    title: "Apply safety rules",
-    text: "Unsure answers are marked as such, and a malignancy flag fires when cancer-related classes add up.",
+    title: "Answer the referral question",
+    text: "Refer when malignant and pre-malignant types together pass the threshold; otherwise unsure or no flag.",
   },
   {
     title: "Explain",
@@ -132,9 +132,10 @@ export function ModelFacts({ meta }) {
 }
 
 const LIMITS = [
-  "It only learned from dermoscopy images (magnified, evenly lit), so ordinary phone photos are turned away.",
+  "It only assesses dermoscopy images taken with a dermatoscope; clinical and phone photos are turned away.",
+  'It only knows the eight lesion types above. A "no flag" answer does not rule out rarer cancers.',
+  "To catch 9 in 10 malignant lesions it flags about half of lesions in its test set for referral.",
   "Accuracy on darker skin tones is unknown: the training data does not record skin type.",
-  "It only knows the eight conditions above, not rashes, infections or anything else.",
 ];
 
 export function Privacy() {
@@ -143,7 +144,7 @@ export function Privacy() {
       <div className="grid gap-12 lg:grid-cols-2">
         <div>
           <Eyebrow>Privacy</Eyebrow>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight">Your photo is never stored.</h2>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">Images are never stored.</h2>
           <p className="mt-4 flex gap-3 text-[15px] leading-relaxed text-ink-soft">
             <LockIcon className="mt-1 h-5 w-5 shrink-0 text-accent" />
             Images are analysed in memory and discarded as soon as the result is sent. They are not

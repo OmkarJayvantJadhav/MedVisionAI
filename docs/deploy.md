@@ -13,9 +13,9 @@ docker compose up --build        # or: make docker-build docker-run
 make smoke                       # checks /ready, the home page, /predict and /explain
 ```
 
-## Live demo on Render (free)
+## Hosting on Render
 
-`render.yaml` describes the service for Render's free web-service tier. Render
+`render.yaml` describes the service for a Render web service. Render
 builds the Dockerfile and **deploys `main` automatically once GitHub CI has
 passed** (`autoDeployTrigger: checksPass`).
 
@@ -29,9 +29,9 @@ passed** (`autoDeployTrigger: checksPass`).
    `https://medvision-ai.onrender.com`).
 4. In GitHub, open **Settings → Secrets and variables → Actions → Variables →
    New repository variable**: name `LIVE_URL`, value the service URL. The
-   **Live site** workflow then smoke-tests the public demo daily and on demand.
+   **Live site** workflow then smoke-tests the live app daily and on demand.
 
-### What the free tier means
+### Hosting limits
 
 - **Sleeps when idle.** The service stops after 15 minutes without visitors;
   the next visit wakes it in about a minute.

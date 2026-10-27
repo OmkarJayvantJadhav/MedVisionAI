@@ -5,7 +5,7 @@ export default function Footer({ modelVersion }) {
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <p>
-          MedVision AI · research and education project
+          MedVision AI · not a medical device
           {modelVersion && (
             <>
               {" "}

@@ -8,9 +8,7 @@ describe("ResultCard", () => {
   it("leads with the verdict, then scores, details and disclaimer", () => {
     render(<ResultCard result={explainResponse} />);
 
-    expect(
-      screen.getByRole("heading", { name: "Possible malignancy: please see a dermatologist" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Refer: possible malignancy" })).toBeInTheDocument();
     expect(screen.getByText("Assessment complete")).toBeInTheDocument();
     expect(screen.getByText(explainResponse.summary)).toBeInTheDocument();
     const meters = screen.getAllByRole("meter");
@@ -41,7 +39,7 @@ describe("ResultCard", () => {
     render(<ResultCard result={rejected} />);
 
     expect(
-      screen.getByRole("heading", { name: "This photo could not be assessed" }),
+      screen.getByRole("heading", { name: "This image could not be assessed" }),
     ).toBeInTheDocument();
     expect(screen.getByText("The photo is too blurry.")).toBeInTheDocument();
     expect(screen.queryAllByRole("meter")).toHaveLength(0);

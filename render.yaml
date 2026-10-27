@@ -1,4 +1,4 @@
-# Render Blueprint: the live demo on Render's free web-service tier (D44).
+# Render Blueprint: the live app as a Render web service (D44).
 # Render builds the Dockerfile and deploys main once GitHub CI has passed.
 services:
   - type: web

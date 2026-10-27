@@ -1,8 +1,8 @@
 import { InfoIcon } from "./icons.jsx";
 
 export const DISCLAIMER =
-  "Not a medical diagnosis. This tool is for education and screening research only. " +
-  "Please consult a qualified dermatologist about any skin concern.";
+  "Decision support for clinicians: not a diagnosis or a medical device, and not " +
+  "clinically validated. The referral decision rests with the clinician.";
 
 export default function Disclaimer({ text = DISCLAIMER }) {
   return (

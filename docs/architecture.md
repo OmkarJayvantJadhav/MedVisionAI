@@ -1,11 +1,11 @@
 # Architecture
 
-MedVision AI is a free, explainable research prototype of a triage aid for dermoscopy
-images. Its job is to
-answer *"should this lesion be seen by a dermatologist?"* honestly, and to refuse
-images it cannot judge (objective and scope: [PROJECT_PLAN.md §1](PROJECT_PLAN.md#1-problem-objective-and-scope)).
-Every part of the design follows from two constraints: **safety first** and
-**$0 to run**.
+MedVision AI is a skin-cancer referral check for dermoscopy images, used by clinicians with
+a dermatoscope. Its job is to answer *"should this lesion be referred to a dermatologist?"*
+honestly, and to refuse images it cannot judge (users, objective and scope:
+[PROJECT_PLAN.md §1](PROJECT_PLAN.md#1-problem-objective-and-scope)).
+Every part of the design follows from two constraints: **safety first**, and **inference
+on a small CPU** with no GPU or outside service.
 
 The system has two halves that share nothing at runtime:
 
@@ -52,9 +52,9 @@ flowchart TB
 | `app/inference/quality.py` | Brightness, sharpness (Laplacian variance) and the sensor-noise estimate |
 | `app/inference/predictor.py` | One ONNX Runtime session; turns one forward pass into the prediction and, on request, the heatmap |
 | `app/inference/calibration.py` | Logits from pooled features, temperature-scaled softmax, Mahalanobis distance |
-| `app/inference/decision.py` | The safety rules: rejection reasons, low confidence, malignancy flag, risk verdict |
+| `app/inference/decision.py` | The safety rules: rejection reasons, low confidence, malignancy (referral) flag, risk flag |
 | `app/inference/cam.py` | Class activation map, colour map, overlay, fast PNG encoding |
-| `app/services/summary.py` | Plain-language summary from a fixed template that only restates the prediction; no generated text |
+| `app/services/summary.py` | Summary for the clinician from a fixed template that only restates the prediction; no generated text |
 
 ### Frontend
 
@@ -66,9 +66,9 @@ FastAPI process. Tailwind CSS v4 provides the design tokens, with light and dark
 | `src/App.jsx` | State machine of the studio card: empty, analysing, result or error. Analyses as soon as a photo is chosen, dropped or pasted |
 | `src/components/UploadPanel.jsx` | Drop zone, file picker, phone camera and the three samples |
 | `src/components/HeatmapViewer.jsx` | The user's photo, the scanning line while busy, then the heatmap overlay with toggle and opacity |
-| `src/components/ResultCard.jsx` | Verdict, closest match, top 3, cancer-related gauge with the threshold marker, technical details, disclaimer |
+| `src/components/ResultCard.jsx` | Referral answer, closest match, top 3, malignancy gauge with the referral threshold marked, technical details, disclaimer |
 | `src/components/InfoSections.jsx` | How it works, model facts read from `/meta`, privacy and limitations |
-| `src/lib/labels.js` | Verdict priority (malignancy flag, then unsure, then benign) and the wording for every reason and error |
+| `src/lib/labels.js` | Referral answer priority (refer, then unsure, then no flag) and the wording for every reason and error |
 | `src/api/client.js` | `fetch` wrapper; tests check mock responses against the committed `openapi.json` |
 
 ### One request
@@ -105,11 +105,11 @@ Applied in this order (`decision.py`):
 1. **Reject** if the image is too dark or too bright, too blurry, too noisy, or too far
    from the training images (out of distribution). The response lists every reason.
 2. **Low confidence** if the top calibrated probability is below the fitted threshold.
-3. **Malignancy flag** if melanoma + basal cell carcinoma + squamous cell carcinoma +
+3. **Referral flag** if melanoma + basal cell carcinoma + squamous cell carcinoma +
    actinic keratosis reach the fitted threshold, whatever the top class is.
 
-The interface ranks the verdicts as malignancy flag, then unsure, then benign, so a
-warning is never hidden behind "unsure".
+The interface turns these into one referral answer, ranked refer, then unsure, then no
+flag, so a warning is never hidden behind "unsure".
 
 ## Offline pipeline
 
@@ -191,7 +191,7 @@ with its reasoning.
 flowchart LR
     PR["Pull request"] --> CI{"CI: lint, types, tests,<br/>Docker build, container smoke test"}
     CI -- merge --> MAIN["main"]
-    MAIN --> RENDER["Render free tier<br/>builds Dockerfile after checks pass"]
+    MAIN --> RENDER["Render<br/>builds Dockerfile after checks pass"]
     RENDER --> LIVE(["medvision-ai-hguo.onrender.com"])
     CRON["Daily 'Live site' workflow"] --> LIVE
 ```
@@ -205,18 +205,18 @@ flowchart LR
   checks that a generated non-skin image and a grainy image are rejected, and reports
   p95 latency. See [deploy.md](deploy.md).
 
-## Designed for free tiers
+## Designed for a small CPU
 
 | Constraint | Design choice |
 |---|---|
-| Free hosting has no GPU and a fraction of one CPU | EfficientNet-B0 exported to ONNX (16 MB) on ONNX Runtime; one inference thread on Render |
+| The host has no GPU and a fraction of one CPU | EfficientNet-B0 exported to ONNX (16 MB) on ONNX Runtime; one inference thread on Render |
 | 512 MB of memory | No TensorFlow in the image; the container uses about 170 MB |
 | One forward pass must do everything | Logits, the heatmap and the out-of-distribution distance all come from the same `feature_maps` output |
 | The service sleeps after 15 idle minutes | The model files are baked into the image, so waking up needs no download; the model loads once at startup |
-| No paid database or storage | Stateless requests; images live in memory only; model files come from GitHub Releases |
+| No database or storage | Stateless requests; images live in memory only; model files come from GitHub Releases |
 | No API keys | No external calls at all; fonts are self-hosted |
-| Free GPU hours are limited | Training runs as a background Kaggle notebook that only calls the tested CLI |
+| GPU time is limited (about 30 hours a week on Kaggle) | Training runs as a background Kaggle notebook that only calls the tested CLI |
 
-What it deliberately does not do (other skin conditions, phone photos, generated text,
-accounts) is listed with reasons in the plan's
+What it deliberately does not do (self-checks by the public, phone photos, other skin
+conditions, generated text, accounts) is listed with reasons in the plan's
 [scope table](PROJECT_PLAN.md#scope).
