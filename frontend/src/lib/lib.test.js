@@ -36,9 +36,16 @@ describe("labels", () => {
       risk_flag: "uncertain",
       reasons: ["out_of_distribution"],
     });
-    expect(blurry.title).toBe("This image could not be assessed");
-    expect(unfamiliar.title).toBe("Not a dermoscopy image: not assessed");
+    expect(blurry.title).toBe("Not assessed: image rejected");
+    expect(unfamiliar.title).toBe("Not assessed: not a dermoscopy image");
     expect(unfamiliar.guidance).toMatch(/dermoscopy/);
+  });
+
+  it("gives every outcome a short decision label", () => {
+    expect(verdict({ status: "ok", risk_flag: "malignant_suspected" }).decision).toBe("Refer");
+    expect(verdict({ status: "low_confidence", risk_flag: "uncertain" }).decision).toBe("Unsure");
+    expect(verdict({ status: "ok", risk_flag: "benign" }).decision).toBe("No flag");
+    expect(verdict({ status: "rejected", risk_flag: "uncertain" }).decision).toBe("Not assessed");
   });
 
   it("formats percentages", () => {

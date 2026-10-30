@@ -6,10 +6,10 @@ export default function ErrorAlert({ error, onDismiss, onRetry }) {
   return (
     <div
       role="alert"
-      className="animate-fade-up flex items-start gap-3 rounded-2xl border border-alert/30 bg-alert-soft p-4 text-sm text-ink"
+      className="animate-fade-in flex flex-wrap items-start gap-3 rounded-xl border border-alert/30 bg-alert-soft p-4 text-sm text-ink"
     >
       <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-alert" />
-      <p className="flex-1 leading-relaxed">
+      <p className="min-w-0 flex-1 leading-relaxed">
         {typeof error === "string" ? error : errorMessage(error)}
       </p>
       <div className="flex shrink-0 gap-3 font-semibold">

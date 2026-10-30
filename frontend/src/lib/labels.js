@@ -20,7 +20,7 @@ export const RISK = {
     label: "Malignancy suspected",
     tone: "danger",
   },
-  benign: { label: "No malignancy flag", tone: "positive" },
+  benign: { label: "Not flagged", tone: "positive" },
   uncertain: { label: "Uncertain", tone: "caution" },
 };
 
@@ -50,29 +50,34 @@ export const REASONS = {
 };
 
 /**
- * One headline verdict per result, with what to do next. The malignancy flag
- * wins over every other state, so a warning is never hidden behind "unsure".
+ * The referral answer for a result: a short decision, a headline and what it
+ * means for the clinician. A rejected image is never given a score-based
+ * answer; otherwise the malignancy flag wins over "unsure", so a warning is
+ * never hidden behind uncertainty (plan §8.9).
  */
 export function verdict(result) {
   if (result.status === "rejected" && result.reasons?.includes("out_of_distribution")) {
     return {
       tone: "neutral",
-      title: "Not a dermoscopy image: not assessed",
+      decision: "Not assessed",
+      title: "Not assessed: not a dermoscopy image",
       guidance:
-        "The model only assesses dermoscopy images of a single lesion, taken with a dermatoscope. Clinical and phone photos cannot be assessed, so base the referral decision on your clinical assessment.",
+        "The model only assesses dermoscopy images of a single lesion, taken with a dermatoscope. Clinical and smartphone photos cannot be assessed, so base the referral decision on your clinical assessment.",
     };
   }
   if (result.status === "rejected") {
     return {
       tone: "neutral",
-      title: "This image could not be assessed",
+      decision: "Not assessed",
+      title: "Not assessed: image rejected",
       guidance:
-        "Retake the dermoscopy image in focus and evenly lit, with the lesion filling most of the frame, then try again.",
+        "The image did not pass the quality checks. Retake the dermoscopy image in focus and evenly lit, with the lesion filling most of the frame, then try again.",
     };
   }
   if (result.risk_flag === "malignant_suspected") {
     return {
       tone: "danger",
+      decision: "Refer",
       title: "Refer: possible malignancy",
       guidance:
         "The combined probability of malignant and pre-malignant lesion types passed the referral threshold. Consider referral to a dermatologist; the decision rests on your clinical assessment.",
@@ -81,13 +86,15 @@ export function verdict(result) {
   if (result.status === "low_confidence") {
     return {
       tone: "caution",
-      title: "Unsure: the model cannot decide",
+      decision: "Unsure",
+      title: "Unsure: low confidence",
       guidance:
-        "Retake the image if its quality is poor. If the lesion is new, changing, bleeding or otherwise concerning, refer on clinical grounds whatever the result.",
+        "The model's top answer is below its confidence threshold. Retake the image if its quality is poor. If the lesion is new, changing, bleeding or otherwise concerning, refer on clinical grounds whatever the result.",
     };
   }
   return {
     tone: "positive",
+    decision: "No flag",
     title: "No malignancy flag",
     guidance:
       "The referral threshold was not reached. This does not rule out malignancy, including cancers outside the eight lesion types the model knows: decide on the history, examination and any change over time.",

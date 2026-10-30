@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Explainable, safety-gated skin-cancer triage for dermoscopy images. Not a medical diagnosis."
+      content="Skin-cancer referral support for dermoscopy images. Decision support for clinicians, not a medical diagnosis."
     />
+    <meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a111d" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>MedVision AI</title>
+    <title>MedVision AI · Dermoscopy referral support</title>
+    <script>
+      // Apply a saved theme before the first paint (see src/lib/theme.js).
+      try {
+        var theme = localStorage.getItem("medvision-theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

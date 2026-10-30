@@ -2,36 +2,31 @@ import { useId, useRef, useState } from "react";
 
 import { SAMPLES } from "../lib/samples.js";
 import { ACCEPTED_TYPES, DEFAULT_MAX_MB } from "../lib/validation.js";
-import { CameraIcon, UploadIcon } from "./icons.jsx";
+import { InfoIcon, UploadIcon } from "./icons.jsx";
 
-function SampleRow({ busy, onSample }) {
+function SampleList({ busy, onSample }) {
   return (
-    <div className="mt-8">
-      <div className="flex items-center gap-4">
-        <span className="h-px flex-1 bg-line" />
-        <p className="text-xs font-medium tracking-[0.12em] text-ink-faint uppercase">
-          Or try a sample
-        </p>
-        <span className="h-px flex-1 bg-line" />
-      </div>
-      <ul className="mt-5 grid grid-cols-3 gap-3 sm:gap-4">
+    <div>
+      <h3 className="text-sm font-semibold">Or use a sample image</h3>
+      <p className="mt-0.5 text-xs text-ink-soft">
+        Held-out ISIC 2019 test images (CC BY-NC 4.0), never used in training.
+      </p>
+      <ul className="mt-3 grid grid-cols-3 gap-3">
         {SAMPLES.map((sample) => (
-          <li key={sample.id}>
+          <li key={sample.id} className="min-w-0">
             <button
               type="button"
               onClick={() => onSample(sample)}
               disabled={busy}
-              className="group w-full text-left disabled:pointer-events-none disabled:opacity-60"
+              className="group flex w-full flex-col overflow-hidden rounded-xl bg-surface text-left ring-1 ring-line transition hover:ring-accent disabled:pointer-events-none disabled:opacity-60"
             >
-              <span className="block overflow-hidden rounded-2xl ring-1 ring-line transition duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[var(--shadow-card)] group-hover:ring-accent/50">
-                <img
-                  src={sample.file}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-square w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                />
-              </span>
-              <span className="mt-2 block truncate text-center text-xs font-medium text-ink-soft group-hover:text-ink sm:text-[13px]">
+              <img
+                src={sample.file}
+                alt=""
+                loading="lazy"
+                className="aspect-[4/3] w-full object-cover"
+              />
+              <span className="truncate border-t border-line px-2.5 py-2 text-xs font-medium text-ink-soft group-hover:text-ink sm:text-[13px]">
                 {sample.label}
               </span>
             </button>
@@ -43,12 +38,13 @@ function SampleRow({ busy, onSample }) {
 }
 
 /**
- * The empty state of the studio: drop, browse, paste, use the camera (phones)
- * or pick a sample. Calls `onSelect(file)` or `onSample(sample)`.
+ * The empty state of the workspace: drop, browse or paste a dermoscopy image,
+ * or pick a sample. Calls `onSelect(file)` or `onSample(sample)`; the file is
+ * validated by the caller.
  */
 export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSelect, onSample }) {
   const inputId = useId();
-  const cameraId = useId();
+  const hintId = useId();
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
 
@@ -57,7 +53,7 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
   };
 
   return (
-    <section aria-label="Choose a photo" className="mx-auto max-w-2xl">
+    <section aria-label="Choose a dermoscopy image" className="flex flex-col gap-6">
       <div
         onDragOver={(event) => {
           event.preventDefault();
@@ -70,43 +66,45 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
           handleFiles(event.dataTransfer.files);
         }}
         data-dragging={dragging}
-        className={`rounded-[24px] border border-dashed transition duration-300 ${
-          dragging
-            ? "scale-[1.01] border-accent bg-accent-soft"
-            : "border-ink-faint/40 bg-sunken/40 hover:border-accent/60 hover:bg-accent-soft/40"
+        className={`flex flex-col items-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+          dragging ? "border-accent bg-accent-soft" : "border-line-strong bg-sunken/50"
         }`}
       >
+        <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent-soft text-accent">
+          <UploadIcon className="h-6 w-6" />
+        </span>
+        <p className="mt-4 text-base font-semibold">Drop a dermoscopy image here</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          or select a file<span className="hidden sm:inline">, or paste with Ctrl+V</span>
+        </p>
         <button
           type="button"
           onClick={() => input.current?.click()}
-          className="group flex w-full flex-col items-center justify-center rounded-[24px] px-6 py-12 text-center sm:py-16"
+          disabled={busy}
+          aria-describedby={hintId}
+          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-60"
         >
-          <span className="grid h-16 w-16 place-items-center rounded-2xl bg-surface text-accent shadow-[var(--shadow-card)] ring-1 ring-line transition duration-300 group-hover:-translate-y-1">
-            <UploadIcon className="h-7 w-7" />
-          </span>
-          <span className="mt-5 text-lg font-semibold tracking-tight">Drop an image here</span>
-          <span className="mt-1.5 text-sm text-ink-soft">
-            or <span className="font-semibold text-accent">browse your files</span>
-            <span className="hidden sm:inline"> · paste with Ctrl+V</span>
-          </span>
-          <span className="mt-4 text-xs text-ink-faint">
-            Dermoscopy close-up · JPEG, PNG or WebP · up to {maxMb} MB
-          </span>
+          Select image
         </button>
+        <p id={hintId} className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-ink-soft">
+          <span className="rounded-md bg-surface px-2 py-1 ring-1 ring-line">
+            JPEG, PNG or WebP
+          </span>
+          <span className="rounded-md bg-surface px-2 py-1 ring-1 ring-line">Up to {maxMb} MB</span>
+          <span className="rounded-md bg-surface px-2 py-1 ring-1 ring-line">One lesion</span>
+        </p>
       </div>
 
-      {/* <label
-        htmlFor={cameraId}
-        className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-canvas transition hover:opacity-90 sm:hidden"
-      >
-        <CameraIcon className="h-[18px] w-[18px]" />
-        Use camera
-      </label> */}
+      <div className="flex items-start gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+        <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+        <p>
+          <strong className="font-semibold">Dermoscopy images only.</strong> Use an image of a
+          single lesion taken through a dermatoscope. Ordinary clinical or smartphone photos are
+          outside what the model was trained on and are rejected rather than assessed.
+        </p>
+      </div>
 
-      <SampleRow busy={busy} onSample={onSample} />
-      <p className="mt-4 text-center text-[11px] text-ink-faint">
-        Samples are ISIC 2019 test images (CC BY-NC 4.0), never used in training.
-      </p>
+      <SampleList busy={busy} onSample={onSample} />
 
       <input
         id={inputId}
@@ -116,19 +114,6 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
         className="sr-only"
         tabIndex={-1}
         aria-label="Choose an image file"
-        onChange={(event) => {
-          handleFiles(event.target.files);
-          event.target.value = "";
-        }}
-      />
-      <input
-        id={cameraId}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        tabIndex={-1}
-        aria-label="Take a photo"
         onChange={(event) => {
           handleFiles(event.target.files);
           event.target.value = "";
