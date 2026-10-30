@@ -69,6 +69,14 @@ def test_environment_overrides_are_typed(tmp_path: Path) -> None:
         "training: [1, 2]\n",
         "evaluation:\n  target_in_distribution_acceptance: 0\n",
         "evaluation:\n  ood_shrinkage: 1.5\n",
+        "augmentation:\n  rotation: 0.6\n",
+        "augmentation:\n  saturation: 1.0\n",
+        "augmentation:\n  brightness: -0.1\n",
+        "training:\n  loss: hinge\n",
+        "training:\n  lr_schedule: step\n",
+        "training:\n  focal_gamma: -1\n",
+        "training:\n  warmup_epochs: -1\n",
+        "training:\n  fine_tune_layers: 0\n",
     ],
 )
 def test_invalid_configs_are_rejected(tmp_path: Path, text: str) -> None:
@@ -86,3 +94,28 @@ def test_loading_has_no_filesystem_side_effects(tmp_path: Path) -> None:
     before = sorted(tmp_path.rglob("*"))
     load_config(path, environ={})
     assert sorted(tmp_path.rglob("*")) == before
+
+
+def test_training_options_default_to_the_shipped_recipe() -> None:
+    config = load_config(DEFAULT_CONFIG_PATH, environ={})
+    assert config.training.loss == "crossentropy"
+    assert config.training.lr_schedule == "plateau"
+    assert config.training.fine_tune_layers == 40
+    assert config.augmentation.vertical_flip is False
+    assert config.augmentation.brightness == config.augmentation.saturation == 0.0
+
+
+def test_training_options_can_be_set_from_the_environment(tmp_path: Path) -> None:
+    env = {
+        "MEDVISION__TRAINING__LOSS": "Focal",
+        "MEDVISION__TRAINING__LR_SCHEDULE": "cosine",
+        "MEDVISION__TRAINING__WARMUP_EPOCHS": "2",
+        "MEDVISION__AUGMENTATION__VERTICAL_FLIP": "true",
+        "MEDVISION__AUGMENTATION__ROTATION": "0.5",
+    }
+    config = load_config(write(tmp_path, "{}\n"), environ=env)
+    assert config.training.loss == "focal"
+    assert config.training.lr_schedule == "cosine"
+    assert config.training.warmup_epochs == 2
+    assert config.augmentation.vertical_flip is True
+    assert config.augmentation.rotation == 0.5

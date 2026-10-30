@@ -30,6 +30,7 @@ from medvision_ml.config import AugmentationConfig, Backbone, ModelConfig
 
 LOGGER = logging.getLogger(__name__)
 
+AUGMENTATION_LAYER = "augmentation"
 BACKBONE_LAYER = "backbone"
 POOL_LAYER = "pool"
 LOGITS_LAYER = "logits"
@@ -62,15 +63,32 @@ BACKBONES: dict[Backbone, BackboneSpec] = {
 def build_augmentation(config: AugmentationConfig) -> keras.Sequential:
     """Return the augmentation block; Keras disables it automatically at inference."""
     layers: list[keras.layers.Layer] = []
-    if config.horizontal_flip:
-        layers.append(keras.layers.RandomFlip("horizontal"))
+    flips = [
+        m
+        for m, on in (("horizontal", config.horizontal_flip), ("vertical", config.vertical_flip))
+        if on
+    ]
+    if flips:
+        layers.append(keras.layers.RandomFlip("_and_".join(flips)))
     if config.rotation > 0:
         layers.append(keras.layers.RandomRotation(config.rotation))
     if config.zoom > 0:
         layers.append(keras.layers.RandomZoom(config.zoom))
     if config.contrast > 0:
         layers.append(keras.layers.RandomContrast(config.contrast))
-    return keras.Sequential(layers, name="augmentation")
+    if config.brightness > 0:
+        layers.append(keras.layers.RandomBrightness(config.brightness, value_range=(0, 255)))
+    if config.saturation > 0:
+        # Keras 3.15's RandomSaturation leaves the 0-255 range (values far below
+        # zero) when told the input is 0-255, but behaves on 0-1 input, so it
+        # runs on a temporarily rescaled image.
+        half = config.saturation / 2
+        layers += [
+            keras.layers.Rescaling(1 / 255, name="saturation_in"),
+            keras.layers.RandomSaturation((0.5 - half, 0.5 + half), value_range=(0, 1)),
+            keras.layers.Rescaling(255, name="saturation_out"),
+        ]
+    return keras.Sequential(layers, name=AUGMENTATION_LAYER)
 
 
 def build_model(
