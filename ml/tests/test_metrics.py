@@ -10,7 +10,6 @@ from medvision_ml.evaluation.metrics import (
     malignant_group_metrics,
     malignant_indices,
     reliability_bins,
-    selection_key,
     threshold_for_recall,
 )
 
@@ -92,13 +91,6 @@ def test_threshold_for_recall_reaches_target() -> None:
 def test_threshold_requires_positives() -> None:
     with pytest.raises(ValueError):
         threshold_for_recall([0, 2], one_hot([0, 2]), [1], 0.9)
-
-
-def test_selection_prefers_malignant_recall_then_f1_then_calibration() -> None:
-    a = {"malignant_group": {"recall_top1": 0.9}, "macro_f1": 0.6, "ece": 0.10}
-    b = {"malignant_group": {"recall_top1": 0.8}, "macro_f1": 0.9, "ece": 0.01}
-    c = {"malignant_group": {"recall_top1": 0.9}, "macro_f1": 0.6, "ece": 0.05}
-    assert max([a, b, c], key=selection_key) is c
 
 
 @pytest.mark.parametrize(

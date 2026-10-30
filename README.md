@@ -23,13 +23,6 @@ images it cannot judge. The clinician makes the decision.
 [![Code licence: MIT](https://img.shields.io/badge/Code-MIT-0b6e75)](LICENSE)
 ![Model licence](https://img.shields.io/badge/Model-CC_BY--NC_4.0-lightgrey)
 
-<br>
-
-<!-- <img src="docs/assets/demo.gif" alt="Demo: a melanoma sample is chosen, the photo is scanned, the result shows a malignancy warning with top matches, and the heatmap opacity is adjusted" width="860">
-
-<sub>Choose a photo, watch it being analysed, read the verdict, then explore the heatmap.
-The sample is an ISIC 2019 test image the model never saw in training.</sub> -->
-
 </div>
 
 > [!IMPORTANT]

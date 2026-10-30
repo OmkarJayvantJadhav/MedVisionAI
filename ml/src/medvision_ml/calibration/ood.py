@@ -169,7 +169,6 @@ def fit_ood(
     output_dir: Path | None = None,
     *,
     temperature: float = 1.0,
-    trust_legacy_lambda: bool = False,
 ) -> dict[str, Any]:
     """Fit the feature Gaussian on Train and the threshold on Validation; report on Test.
 
@@ -182,7 +181,7 @@ def fit_ood(
         ValueError: If ``non_skin_dir`` contains no images.
     """
     targets = config.evaluation
-    model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
+    model = load_model(model_path)
     feature_model = _feature_model(model)
     out = output_dir or config.output_dir / "ood" / model_path.parent.name
     out.mkdir(parents=True, exist_ok=True)

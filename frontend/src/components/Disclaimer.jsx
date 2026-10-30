@@ -1,6 +1,6 @@
 import { ShieldIcon } from "./icons.jsx";
 
-export const DISCLAIMER =
+const DISCLAIMER =
   "Decision support for clinicians: not a diagnosis or a medical device, and not " +
   "clinically validated. The referral decision rests with the clinician.";
 

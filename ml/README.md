@@ -53,10 +53,6 @@ is not part of the repository.
 
 `make evaluate` (repository root) runs the reporting commands in order.
 
-The prototype model stores its preprocessing in a `Lambda` layer, which Keras
-only loads in unsafe mode. Pass `--trust-legacy-model` to `evaluate` or
-`gradcam` for that file only. Models trained here do not need it.
-
 ## Model layout
 
 `image → augmentation → backbone → pool → dropout → logits → probabilities`

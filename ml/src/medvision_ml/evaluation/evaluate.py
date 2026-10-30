@@ -86,8 +86,6 @@ def evaluate(
     model_path: Path,
     split: str = "Test",
     output_dir: Path | None = None,
-    *,
-    trust_legacy_lambda: bool = False,
 ) -> dict[str, Any]:
     """Evaluate ``model_path`` on ``config.data_dir/<split>`` and write a report.
 
@@ -99,7 +97,7 @@ def evaluate(
     """
     names_path = model_path.with_name(f"{model_path.stem}_class_names.json")
     model_classes = load_class_names(names_path)
-    model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
+    model = load_model(model_path)
     predictions, class_names = predict_split(model, config.data_dir / split, config)
     if class_names != model_classes:
         raise ValueError(f"Dataset classes {class_names} differ from model classes {model_classes}")

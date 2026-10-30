@@ -194,16 +194,3 @@ def classification_metrics(
         group = malignant_indices(class_names, malignant)
         result["malignant_group"] = malignant_group_metrics(labels, probs, group)
     return result
-
-
-def selection_key(metrics: dict[str, Any]) -> tuple[float, float, float]:
-    """Sort key for model selection: malignant recall, then macro F1, then low ECE.
-
-    Larger is better, so use ``max(candidates, key=selection_key)``.
-    """
-    group = metrics.get("malignant_group", {})
-    return (
-        float(group.get("recall_top1", 0.0)),
-        float(metrics["macro_f1"]),
-        -float(metrics["ece"]),
-    )

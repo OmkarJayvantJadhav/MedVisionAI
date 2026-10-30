@@ -52,8 +52,6 @@ def calibrate(
     config: ProjectConfig,
     model_path: Path,
     output_dir: Path | None = None,
-    *,
-    trust_legacy_lambda: bool = False,
 ) -> dict[str, Any]:
     """Fit the temperature and thresholds on Validation and report them on Test.
 
@@ -65,7 +63,7 @@ def calibrate(
     """
     targets = config.evaluation
     model_classes = load_class_names(model_path.with_name(f"{model_path.stem}_class_names.json"))
-    model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
+    model = load_model(model_path)
     malignant = malignant_indices(model_classes, targets.malignant_classes)
     bins = targets.calibration_bins
     out = output_dir or config.output_dir / "calibration" / model_path.parent.name
