@@ -166,27 +166,30 @@ makes the model more confident or less honest, is not accepted.
 
 1. **Add a dermoscopy image.** Drop it on the card, browse your files or paste it with
    Ctrl+V. No image to hand? Pick one of the three samples (held-out ISIC 2019 test images).
-2. **Watch it being analysed.** The image appears straight away, with a scanning line while
-   the three steps run: quality check, model, heatmap.
+2. **Watch it being analysed.** The image appears straight away, with a scanning line, the
+   three server-side steps (quality validation, model inference, heatmap) and the elapsed
+   time. The header shows whether the model is ready.
 3. **Read the answer first.** One of four outcomes leads the result, always in this order of
    priority:
 
    | Answer | When | What it means for the clinician |
    |---|---|---|
    | **Refer: possible malignancy** | Malignant and pre-malignant classes together pass the referral threshold | Consider referral to a dermatologist |
-   | **Unsure** | Top confidence below the fitted threshold | Retake the image if it is poor; refer on clinical grounds if the lesion is new, changing or bleeding |
+   | **Unsure: low confidence** | Top confidence below the fitted threshold | Retake the image if it is poor; refer on clinical grounds if the lesion is new, changing or bleeding |
    | **No malignancy flag** | Neither of the above | The threshold was not reached; this does not rule out malignancy |
-   | **Not assessed** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that only dermoscopy images can be assessed |
+   | **Not assessed: image rejected** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that only dermoscopy images can be assessed |
 
-4. **Look closer.** Below the answer: the closest lesion type, the top three with calibrated
-   percentages, and the malignancy gauge with the referral threshold marked. On the image,
-   the heatmap shows where the model looked; toggle it or change its opacity.
-5. **Technical details**, folded away, show the status, risk flag, summary, model version and
-   processing time.
+4. **Look closer.** Below the answer: the clinical summary, the combined malignancy gauge
+   with the referral threshold marked, the closest lesion type with the top three calibrated
+   probabilities, the model version and the processing time. On the image, the heatmap shows
+   where the model's attention was; toggle it or change its opacity. It is not a diagnosis
+   or an outline of cancer.
+5. **Technical details**, folded away, show the raw status, risk flag and reasons.
 
-The interface is one card that changes state rather than a page of panels. It works in light
-and dark mode, by keyboard and with a screen reader, and on a phone or tablet, where the
-answer comes before the image.
+The interface is one workspace card that changes with the state rather than a dashboard of
+panels, with background information in collapsible sections below it. It works in light and
+dark mode (following the system until you choose), by keyboard and with a screen reader, and
+on a phone or tablet, where the answer comes before the image.
 
 ## How it works
 
