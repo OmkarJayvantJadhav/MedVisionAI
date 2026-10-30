@@ -39,13 +39,6 @@ export const AlertIcon = (props) => (
   </Icon>
 );
 
-export const CheckIcon = (props) => (
-  <Icon {...props}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="m8 12 3 3 5-6" />
-  </Icon>
-);
-
 export const MinusCircleIcon = (props) => (
   <Icon {...props}>
     <circle cx="12" cy="12" r="9" />
@@ -64,13 +57,6 @@ export const ImageOffIcon = (props) => (
   <Icon {...props}>
     <rect x="4" y="4" width="16" height="16" rx="2" />
     <path d="m4 16 4-4 4 4m2-2 2-2 4 4M4 4l16 16" />
-  </Icon>
-);
-
-export const LockIcon = (props) => (
-  <Icon {...props}>
-    <rect x="5" y="11" width="14" height="9" rx="2" />
-    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </Icon>
 );
 

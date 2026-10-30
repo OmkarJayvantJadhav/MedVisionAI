@@ -1,10 +1,12 @@
 # medvision-frontend
 
 React (JavaScript, JSX) + Vite + Tailwind single-page app for MedVision AI.
-One card handles the whole flow: drop, browse, paste or photograph a lesion
-(or pick a sample), see it scanned, then read the verdict, the top matches, the
-cancer-related gauge and a heatmap layered on the photo. The disclaimer is
-always visible, and phones show the verdict before the photo.
+One workspace card handles the whole flow: drop, browse or paste a dermoscopy
+image (or pick a sample), watch it being analysed, then read the referral
+decision, the clinical summary, the malignancy gauge with the referral
+threshold, the closest classes and the heatmap layered on the image. The
+header shows model readiness and a light/dark switch, the disclaimer is always
+visible, and phones show the decision before the image.
 
 ## Develop
 
@@ -36,9 +38,9 @@ API changes cannot silently break the UI.
 
 ## Structure
 
-| Path                | Purpose                                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------------------------- |
-| `src/App.jsx`       | Page layout and the studio card's states: empty, analysing, result, error                                 |
-| `src/api/client.js` | `fetch` wrapper; every failure becomes an `ApiError` with the backend's error code                        |
-| `src/components/`   | Drop zone and samples, photo and heatmap viewer, result, progress, info sections, disclaimer, error alert |
-| `src/lib/`          | Verdict priority and wording for statuses, reasons and errors; samples; client-side file checks           |
+| Path                | Purpose                                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/App.jsx`       | Page layout, readiness from `/meta`, and the workspace card's states: empty, analysing, result, error |
+| `src/api/client.js` | `fetch` wrapper; every failure becomes an `ApiError` with the backend's error code                    |
+| `src/components/`   | Header, upload panel, analysis progress, heatmap viewer, result card, information sections            |
+| `src/lib/`          | Referral-answer wording; published results by model version; samples; theme; file checks              |

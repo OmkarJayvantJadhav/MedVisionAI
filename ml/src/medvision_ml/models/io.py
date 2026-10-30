@@ -67,27 +67,17 @@ def to_float32(model: keras.Model) -> keras.Model:
     return rebuilt
 
 
-def load_model(path: Path, *, trust_legacy_lambda: bool = False) -> keras.Model:
+def load_model(path: Path) -> keras.Model:
     """Load a ``.keras`` model for inference, computing in float32.
 
-    Args:
-        path: Model file.
-        trust_legacy_lambda: Allow models that contain a ``Lambda`` preprocessing
-            layer (the prototype's format). Deserialising a ``Lambda`` layer can
-            execute code, so only enable this for files you produced yourself.
+    Models load in Keras's safe mode, so a file cannot run code while it is read.
 
     Raises:
         FileNotFoundError: If ``path`` does not exist.
     """
     if not path.is_file():
         raise FileNotFoundError(f"Model file not found: {path}")
-    kwargs: dict[str, Any] = {"compile": False}
-    if trust_legacy_lambda:
-        kwargs["safe_mode"] = False
-        kwargs["custom_objects"] = {
-            "preprocess_input": keras.applications.efficientnet.preprocess_input
-        }
-    return to_float32(keras.models.load_model(path, **kwargs))
+    return to_float32(keras.models.load_model(path, compile=False))
 
 
 def load_class_names(path: Path) -> list[str]:

@@ -119,11 +119,10 @@ def subgroups(
     temperature: float,
     malignant_threshold: float,
     output_dir: Path | None = None,
-    trust_legacy_lambda: bool = False,
 ) -> dict[str, Any]:
     """Score the test split by sex, age band and anatomical site; write ``subgroups.json``."""
     class_names = load_class_names(model_path.with_name(f"{model_path.stem}_class_names.json"))
-    model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
+    model = load_model(model_path)
     logits_model = keras.Model(model.input, model.get_layer(LOGITS_LAYER).output)
     split = load_split(config.data_dir / "Test", config.data, shuffle=False, seed=config.seed)
     if split.class_names != class_names:

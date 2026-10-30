@@ -126,7 +126,6 @@ def _evaluate(args: argparse.Namespace, config: ProjectConfig) -> int:
         args.model,
         split=args.split,
         output_dir=args.output,
-        trust_legacy_lambda=args.trust_legacy_model,
     )
     keys = ("accuracy", "macro_f1", "weighted_f1", "roc_auc_ovr_macro", "ece")
     print(
@@ -144,7 +143,7 @@ def _gradcam(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.explainability.gradcam import gradcam, load_image, overlay
     from medvision_ml.models.io import load_class_names, load_model
 
-    model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
+    model = load_model(args.model)
     class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))
     image = load_image(args.image, config.data.image_size)
     result = gradcam(model, image, args.class_index)
@@ -162,9 +161,7 @@ def _gradcam(args: argparse.Namespace, config: ProjectConfig) -> int:
 def _calibrate(args: argparse.Namespace, config: ProjectConfig) -> int:
     from medvision_ml.calibration.calibrate import calibrate
 
-    report = calibrate(
-        config, args.model, output_dir=args.output, trust_legacy_lambda=args.trust_legacy_model
-    )
+    report = calibrate(config, args.model, output_dir=args.output)
     print(json.dumps(report, indent=2))
     return 0
 
@@ -190,7 +187,6 @@ def _fit_ood(args: argparse.Namespace, config: ProjectConfig) -> int:
         args.non_skin,
         output_dir=args.output,
         temperature=temperature,
-        trust_legacy_lambda=args.trust_legacy_model,
     )
     print(json.dumps(report, indent=2))
     return 0
@@ -209,7 +205,6 @@ def _robustness(args: argparse.Namespace, config: ProjectConfig) -> int:
         malignant_threshold=fitted["malignant"],
         gates=read_ood(args.ood) if args.ood is not None else None,
         output_dir=args.output,
-        trust_legacy_lambda=args.trust_legacy_model,
     )
     print(json.dumps(report["conditions"], indent=2))
     return 0
@@ -227,7 +222,6 @@ def _subgroups(args: argparse.Namespace, config: ProjectConfig) -> int:
         temperature=temperature,
         malignant_threshold=fitted["malignant"],
         output_dir=args.output,
-        trust_legacy_lambda=args.trust_legacy_model,
     )
     print(json.dumps(report["groups"], indent=2))
     return 0
@@ -250,7 +244,7 @@ def _export(args: argparse.Namespace, config: ProjectConfig) -> int:
         if gates.max_noise is not None:
             fitted["max_noise"] = gates.max_noise
     thresholds = Thresholds(**fitted, fitted=args.calibration is not None)
-    model = load_model(args.model, trust_legacy_lambda=args.trust_legacy_model)
+    model = load_model(args.model)
     class_names = load_class_names(args.model.with_name(f"{args.model.stem}_class_names.json"))
     output = args.output or config.model_dir / "export" / args.version
     result = export_model(
@@ -334,11 +328,6 @@ def build_parser() -> argparse.ArgumentParser:
         sub = commands.add_parser(name, help=help_text)
         sub.add_argument("--model", type=Path, required=True)
         sub.add_argument("--output", type=Path, default=None)
-        sub.add_argument(
-            "--trust-legacy-model",
-            action="store_true",
-            help="allow the prototype's Lambda-layer model format (trusted files only)",
-        )
         sub.set_defaults(handler=handler)
         if name == "evaluate":
             sub.add_argument("--split", default="Test", choices=["Train", "Validation", "Test"])

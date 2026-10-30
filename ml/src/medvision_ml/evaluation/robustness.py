@@ -179,7 +179,6 @@ def robustness(
     gates: InputGates | None = None,
     output_dir: Path | None = None,
     corruptions: tuple[Corruption, ...] = CORRUPTIONS,
-    trust_legacy_lambda: bool = False,
 ) -> dict[str, Any]:
     """Score the test split under every corruption and write ``robustness.json``.
 
@@ -188,7 +187,7 @@ def robustness(
             without them every image counts as accepted.
     """
     class_names = load_class_names(model_path.with_name(f"{model_path.stem}_class_names.json"))
-    model = load_model(model_path, trust_legacy_lambda=trust_legacy_lambda)
+    model = load_model(model_path)
     scorer = keras.Model(
         model.input, [model.get_layer(POOL_LAYER).output, model.get_layer(LOGITS_LAYER).output]
     )
