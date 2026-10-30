@@ -145,3 +145,34 @@ def test_train_evaluate_and_explain(tmp_path: Path, make_image: MakeImage) -> No
         == 0
     )
     assert overlay.is_file()
+
+
+@pytest.mark.slow
+def test_train_with_every_phase_9_option(tmp_path: Path, make_image: MakeImage) -> None:
+    # Focal loss, a cosine schedule with warm-up, full fine-tuning and every
+    # augmentation option together must train and save a loadable model.
+    options = CONFIG.replace(
+        "  fine_tune_layers: 5\n",
+        "  fine_tune_layers: 1000\n  loss: focal\n  lr_schedule: cosine\n  warmup_epochs: 1\n",
+    ) + (
+        "augmentation:\n  vertical_flip: true\n  rotation: 0.5\n"
+        "  brightness: 0.1\n  saturation: 0.2\n"
+    )
+    (tmp_path / "configs").mkdir()
+    config = tmp_path / "configs" / "options.yaml"
+    config.write_text(options, encoding="utf-8")
+    for split, count in (("Train", 4), ("Validation", 2)):
+        for label, offset in (("Melanoma", 0), ("Nevus", 500)):
+            for i in range(count):
+                make_image(tmp_path / "data" / split / label / f"{i}.png", seed=offset + i)
+
+    assert main(["--config", str(config), "train", "--run-name", "options"]) == 0
+    run_dir = tmp_path / "out" / "runs" / "options"
+    saved = json.loads((run_dir / "config.json").read_text())["config"]["training"]
+    assert (saved["loss"], saved["lr_schedule"], saved["fine_tune_layers"]) == (
+        "focal",
+        "cosine",
+        1000,
+    )
+    assert json.loads((run_dir / "training_summary.json").read_text())["epochs_run"] == 2
+    assert (tmp_path / "artifacts" / "options" / "model.keras").is_file()

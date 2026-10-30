@@ -1,9 +1,10 @@
 """Two-stage transfer-learning training.
 
 Stage 1 trains only the classification head on a frozen backbone. Stage 2
-unfreezes the top of the backbone and fine-tunes with a lower learning rate.
-The final model keeps the weights with the lowest validation loss across
-both stages.
+unfreezes the top of the backbone (or all of it) and fine-tunes with a lower
+learning rate. The loss and the learning-rate schedule come from the
+configuration. The final model keeps the weights with the lowest validation
+loss across both stages.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from medvision_ml.models.builder import build_model, unfreeze_top_layers
 from medvision_ml.models.io import save_model
 from medvision_ml.training.callbacks import build_callbacks
 from medvision_ml.training.class_weights import compute_class_weights
+from medvision_ml.training.losses import build_loss, learning_rate, steps_per_epoch
 from medvision_ml.training.reproducibility import set_seed
 
 LOGGER = logging.getLogger(__name__)
@@ -58,10 +60,18 @@ def _configure_precision(enabled: bool) -> None:
     LOGGER.info("Precision policy: %s", keras.mixed_precision.global_policy().name)
 
 
-def _compile(model: keras.Model, learning_rate: float) -> None:
+def _compile(
+    model: keras.Model,
+    config: ProjectConfig,
+    base_rate: float,
+    epochs: int,
+    steps: int,
+) -> None:
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=keras.losses.SparseCategoricalCrossentropy(),
+        optimizer=keras.optimizers.Adam(
+            learning_rate=learning_rate(config.training, base_rate, epochs, steps)
+        ),
+        loss=build_loss(config.training),
         metrics=["accuracy"],
     )
 
@@ -92,6 +102,7 @@ def train(config: ProjectConfig, run_name: str | None = None) -> TrainingResult:
     train_ds, val_ds = train_split.dataset, val_split.dataset
 
     counts = class_counts(train_dir)
+    steps = steps_per_epoch(sum(counts.values()), config.data.batch_size)
     class_weight = compute_class_weights(
         {i: counts[name] for i, name in enumerate(class_names)}, config.training.class_weighting
     )
@@ -117,7 +128,7 @@ def train(config: ProjectConfig, run_name: str | None = None) -> TrainingResult:
     started = time.perf_counter()
 
     LOGGER.info("Stage 1: training the head for up to %d epochs.", config.training.epochs)
-    _compile(model, config.training.learning_rate)
+    _compile(model, config, config.training.learning_rate, config.training.epochs, steps)
     stage1 = model.fit(
         train_ds,
         validation_data=val_ds,
@@ -133,7 +144,13 @@ def train(config: ProjectConfig, run_name: str | None = None) -> TrainingResult:
     if config.training.fine_tune_epochs > 0:
         LOGGER.info("Stage 2: fine-tuning for up to %d epochs.", config.training.fine_tune_epochs)
         unfreeze_top_layers(model, config.training.fine_tune_layers)
-        _compile(model, config.training.fine_tune_learning_rate)
+        _compile(
+            model,
+            config,
+            config.training.fine_tune_learning_rate,
+            config.training.fine_tune_epochs,
+            steps,
+        )
         initial_epoch = len(stage1.history["loss"])
         stage2 = model.fit(
             train_ds,

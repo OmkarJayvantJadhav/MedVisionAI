@@ -33,7 +33,7 @@ import numpy as np
 import tensorflow as tf
 
 from medvision_ml.explainability.gradcam import _head_dense, _pre_backbone_layers, head_weights
-from medvision_ml.models.builder import get_backbone
+from medvision_ml.models.builder import AUGMENTATION_LAYER, get_backbone
 
 LOGGER = logging.getLogger(__name__)
 
@@ -86,9 +86,14 @@ def build_serving_function(model: keras.Model, image_size: int) -> Any:
 
     Probabilities are recomputed from the pooled feature maps and the Dense
     head so they are exactly consistent with the CAM the backend derives.
+    The augmentation block is left out: it does nothing at inference, and some
+    augmentation layers keep random-seed variables that cannot be frozen into
+    the exported graph.
     """
     backbone = get_backbone(model)
-    pre_layers = _pre_backbone_layers(model, backbone)
+    pre_layers = [
+        layer for layer in _pre_backbone_layers(model, backbone) if layer.name != AUGMENTATION_LAYER
+    ]
     dense = _head_dense(model)
     kernel = tf.constant(np.asarray(dense.kernel, dtype=np.float32))
     bias = tf.constant(np.asarray(dense.bias, dtype=np.float32))

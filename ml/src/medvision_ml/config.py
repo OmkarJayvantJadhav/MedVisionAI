@@ -21,6 +21,8 @@ DEFAULT_CONFIG_PATH = ML_ROOT / "configs" / "skin.yaml"
 
 Backbone = Literal["efficientnetb0", "efficientnetv2s", "convnext_tiny", "mobilenetv2"]
 ClassWeighting = Literal["none", "balanced", "sqrt"]
+Loss = Literal["crossentropy", "focal"]
+LearningRateSchedule = Literal["plateau", "cosine"]
 
 
 class ConfigError(ValueError):
@@ -64,9 +66,24 @@ class DataConfig:
 @dataclass(frozen=True)
 class AugmentationConfig:
     horizontal_flip: bool = True
+    # A lesion has no "up", so vertical flips and full rotations (0.5 = ±180°)
+    # are valid for dermoscopy.
+    vertical_flip: bool = False
     rotation: float = 0.15
     zoom: float = 0.20
     contrast: float = 0.15
+    # Brightness shift as a fraction of the 0-255 range, in both directions.
+    brightness: float = 0.0
+    # Saturation change around "unchanged": 0.2 samples between 0.4 and 0.6 of
+    # Keras's scale, where 0.5 leaves the image as it is.
+    saturation: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.rotation <= 0.5:
+            raise ConfigError("augmentation.rotation must be within [0, 0.5].")
+        for name in ("zoom", "contrast", "brightness", "saturation"):
+            if not 0 <= getattr(self, name) < 1:
+                raise ConfigError(f"augmentation.{name} must be within [0, 1).")
 
 
 @dataclass(frozen=True)
@@ -86,8 +103,17 @@ class TrainingConfig:
     learning_rate: float = 1e-4
     fine_tune_epochs: int = 15
     fine_tune_learning_rate: float = 1e-5
+    # Final backbone layers unfrozen in stage 2; a number at least as large as
+    # the backbone (for example 1000) fine-tunes all of it.
     fine_tune_layers: int = 40
     class_weighting: ClassWeighting = "sqrt"
+    # "focal" down-weights easy examples so rare, hard classes count for more.
+    loss: Loss = "crossentropy"
+    focal_gamma: float = 2.0
+    # "plateau" halves the rate when validation loss stalls; "cosine" decays it
+    # smoothly over each stage after an optional linear warm-up.
+    lr_schedule: LearningRateSchedule = "plateau"
+    warmup_epochs: int = 0
     mixed_precision: bool = True
     early_stopping_patience: int = 10
     reduce_lr_patience: int = 4
@@ -103,6 +129,12 @@ class TrainingConfig:
             raise ConfigError("Learning rates must be positive.")
         if not 0 < self.reduce_lr_factor < 1:
             raise ConfigError("training.reduce_lr_factor must be within (0, 1).")
+        if self.fine_tune_layers < 1:
+            raise ConfigError("training.fine_tune_layers must be positive.")
+        if self.focal_gamma < 0:
+            raise ConfigError("training.focal_gamma must be non-negative.")
+        if self.warmup_epochs < 0:
+            raise ConfigError("training.warmup_epochs must be non-negative.")
 
 
 @dataclass(frozen=True)

@@ -13,6 +13,7 @@ from medvision_ml.models.builder import (
     BACKBONE_LAYER,
     LOGITS_LAYER,
     PROBABILITIES_LAYER,
+    build_augmentation,
     build_model,
     get_backbone,
     unfreeze_top_layers,
@@ -42,6 +43,44 @@ def test_model_layout_and_output(model: keras.Model, image: np.ndarray) -> None:
     probs = np.asarray(model(image[None], training=False))
     assert probs.shape == (1, CLASSES)
     assert probs.sum() == pytest.approx(1.0, abs=1e-5)
+
+
+def test_augmentation_options_add_their_layers_and_are_inactive_at_inference(
+    image: np.ndarray,
+) -> None:
+    config = AugmentationConfig(
+        horizontal_flip=True, vertical_flip=True, rotation=0.5, brightness=0.2, saturation=0.3
+    )
+    block = build_augmentation(config)
+    kinds = {type(layer).__name__: layer for layer in block.layers}
+    assert kinds["RandomFlip"].mode == "horizontal_and_vertical"
+    assert {"RandomRotation", "RandomBrightness", "RandomSaturation"} <= set(kinds)
+    batch = image[None]
+    # Inactive at inference; the 0-1 rescaling around saturation only adds
+    # float rounding, far below one grey level.
+    np.testing.assert_allclose(np.asarray(block(batch, training=False)), batch, atol=1e-3)
+    changed = np.asarray(block(batch, training=True))
+    assert changed.shape == batch.shape
+    assert changed.min() >= 0 and changed.max() <= 255
+
+
+def test_default_augmentation_matches_the_original_recipe() -> None:
+    names = [type(layer).__name__ for layer in build_augmentation(AugmentationConfig()).layers]
+    assert names == ["RandomFlip", "RandomRotation", "RandomZoom", "RandomContrast"]
+    assert build_augmentation(AugmentationConfig()).layers[0].mode == "horizontal"
+    only_vertical = build_augmentation(
+        AugmentationConfig(horizontal_flip=False, vertical_flip=True)
+    )
+    assert only_vertical.layers[0].mode == "vertical"
+
+
+def test_unfreezing_more_layers_than_exist_fine_tunes_the_whole_backbone(
+    model: keras.Model,
+) -> None:
+    clone = keras.models.clone_model(model)
+    unfreeze_top_layers(clone, 1000)
+    for layer in get_backbone(clone).layers:
+        assert layer.trainable is not isinstance(layer, keras.layers.BatchNormalization)
 
 
 def test_mobilenet_rescales_raw_pixels() -> None:

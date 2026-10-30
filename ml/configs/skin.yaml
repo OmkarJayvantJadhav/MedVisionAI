@@ -21,9 +21,12 @@ data:
 
 augmentation:
   horizontal_flip: true
-  rotation: 0.15
+  vertical_flip: false           # lesions have no "up"; true is valid for dermoscopy
+  rotation: 0.15                 # fraction of a full turn each way; 0.5 = any angle
   zoom: 0.20
   contrast: 0.15
+  brightness: 0.0                # fraction of the 0-255 range, both directions
+  saturation: 0.0                # 0.2 = mild saturation changes around the original
 
 model:
   backbone: efficientnetb0       # efficientnetb0 | efficientnetv2s | convnext_tiny | mobilenetv2
@@ -35,8 +38,12 @@ training:
   learning_rate: 1.0e-4
   fine_tune_epochs: 15
   fine_tune_learning_rate: 1.0e-5
-  fine_tune_layers: 40           # final backbone layers unfrozen in stage 2
+  fine_tune_layers: 40           # final backbone layers unfrozen in stage 2; 1000 = all
   class_weighting: sqrt          # none | balanced | sqrt
+  loss: crossentropy             # crossentropy | focal
+  focal_gamma: 2.0               # focal loss only; 0 equals cross-entropy
+  lr_schedule: plateau           # plateau (ReduceLROnPlateau) | cosine (per stage)
+  warmup_epochs: 0               # cosine only: linear warm-up at the start of each stage
   mixed_precision: true
   early_stopping_patience: 10
   reduce_lr_patience: 4

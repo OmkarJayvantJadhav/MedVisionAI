@@ -118,6 +118,35 @@ def test_onnx_probabilities_match_keras(exported: tuple[keras.Model, Path]) -> N
     np.testing.assert_allclose(onnx_probs, model(batch, training=False), atol=1e-4)
 
 
+def test_export_ignores_every_training_augmentation(tmp_path: Path) -> None:
+    # Augmentation layers are part of the model but must be inactive in the
+    # exported inference graph, whichever options a training run switches on.
+    keras.utils.set_random_seed(4)
+    augmentation = AugmentationConfig(
+        horizontal_flip=True,
+        vertical_flip=True,
+        rotation=0.5,
+        zoom=0.2,
+        contrast=0.2,
+        brightness=0.2,
+        saturation=0.3,
+    )
+    model = build_model(ModelConfig(), augmentation, len(CLASSES), SIZE, weights=None)
+    export_model(
+        model,
+        tmp_path,
+        class_names=CLASSES,
+        malignant_classes=["Melanoma"],
+        model_version="test-aug",
+        backbone="efficientnetb0",
+        image_size=SIZE,
+        thresholds=Thresholds(min_sharpness=0.0),
+    )
+    batch = np.random.default_rng(1).uniform(0, 255, (3, SIZE, SIZE, 3)).astype(np.float32)
+    onnx_probs, _ = Predictor.from_directory(tmp_path)._run(batch)
+    np.testing.assert_allclose(onnx_probs, model(batch, training=False), atol=1e-4)
+
+
 def test_serving_cam_matches_tensorflow_gradcam(exported: tuple[keras.Model, Path]) -> None:
     model, directory = exported
     predictor = Predictor.from_directory(directory)
