@@ -518,7 +518,7 @@ MedVisionAI/
 | Inference API, calibration, safety and input gates | ✅ Done |
 | Web app, Docker image, CI and live deployment | ✅ Done |
 | Robustness and subgroup evaluation, model card | ✅ Done |
-| **Stronger model**: larger backbone, higher resolution, full fine-tuning, tracked in MLflow, on a Kaggle GPU; aims to keep recall at 0.90 with fewer referrals | Next: objective 8 |
+| **Stronger model**: full fine-tuning, dermoscopy augmentation, focal loss, higher resolution and a larger backbone, run as an [experiment ladder](docs/experiments.md) on a Kaggle GPU; aims to keep recall at 0.90 with fewer referrals | In progress: training options ready, runs next (objective 8) |
 | **Catch heavy JPEG compression** in the input gates | Planned: objective 4 |
 | External validation on another dermoscopy dataset, including darker skin | Open: needs licensed data with skin-type labels |
 
@@ -535,6 +535,7 @@ never decides.
 | [API reference](docs/api.md) | Endpoints, response fields, error codes, configuration |
 | [Datasets](docs/DATASETS.md) | ISIC 2019, everyday-photo set, licences, attribution, training steps |
 | [Deployment](docs/deploy.md) | Render setup and the live smoke test |
+| [Experiments](docs/experiments.md) | Phase 9 experiment ladder, how to run it on Kaggle, how a winner is chosen |
 | [Project plan](docs/PROJECT_PLAN.md) | Problem, objective, scope, phases, conventions and the full decision log |
 
 ## Acknowledgements and licence
