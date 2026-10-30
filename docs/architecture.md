@@ -59,16 +59,21 @@ flowchart TB
 ### Frontend
 
 A React (JavaScript) single-page app built by Vite and served as static files by the same
-FastAPI process. Tailwind CSS v4 provides the design tokens, with light and dark themes.
+FastAPI process. Tailwind CSS v4 provides the design tokens (`src/index.css`): a medical-blue
+accent, semantic colours for each referral answer, and light and dark themes that follow the
+system until the viewer picks one. Every text colour meets WCAG AA contrast in both themes.
 
 | Module | Responsibility |
 |---|---|
-| `src/App.jsx` | State machine of the studio card: empty, analysing, result or error. Analyses as soon as a photo is chosen, dropped or pasted |
-| `src/components/UploadPanel.jsx` | Drop zone, file picker, phone camera and the three samples |
-| `src/components/HeatmapViewer.jsx` | The user's photo, the scanning line while busy, then the heatmap overlay with toggle and opacity |
-| `src/components/ResultCard.jsx` | Referral answer, closest match, top 3, malignancy gauge with the referral threshold marked, technical details, disclaimer |
-| `src/components/InfoSections.jsx` | How it works, model facts read from `/meta`, privacy and limitations |
-| `src/lib/labels.js` | Referral answer priority (refer, then unsure, then no flag) and the wording for every reason and error |
+| `src/App.jsx` | State machine of the workspace card: empty, analysing, result or error. Analyses as soon as an image is chosen, dropped or pasted; turns the `/meta` request into the readiness shown in the header and retries it while the model starts |
+| `src/components/TopBar.jsx`, `ServiceStatus.jsx`, `ThemeToggle.jsx` | Branding, model readiness (from `/meta`, which answers only once the model is verified) and the light/dark switch |
+| `src/components/UploadPanel.jsx` | Drop zone, file picker, accepted formats and size limit, the dermoscopy-only notice and the three samples. No camera capture, so ordinary phone photos are not encouraged |
+| `src/components/AnalysisPanel.jsx` | The three server-side steps, an indeterminate progress bar and the real elapsed time. It never ticks a step off, because one request runs all three |
+| `src/components/HeatmapViewer.jsx` | The selected image, the scanning line while busy, then the heatmap from the response with toggle, opacity, colour scale and a note that it shows model attention, not a diagnosis |
+| `src/components/ResultCard.jsx` | Referral decision first (refer, unsure, no flag, not assessed), clinical summary, malignancy gauge with the referral threshold, closest class and top 3, model version, processing time, technical details, disclaimer |
+| `src/components/InfoSections.jsx` | Collapsible sections: how it works, model facts from `/meta`, privacy, performance and limitations |
+| `src/lib/labels.js` | Referral answer priority and the wording for every outcome, reason and error |
+| `src/lib/modelResults.js` | Published test results keyed by model version; shown only when `/meta` reports that exact version |
 | `src/api/client.js` | `fetch` wrapper; tests check mock responses against the committed `openapi.json` |
 
 ### One request

@@ -4,49 +4,49 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 /*
- * Design tokens. A calm clinical palette: ink-blue text on a cool off-white,
- * one deep teal accent, and semantic colours kept separate from the accent
- * (benign = emerald, caution = amber, malignancy flag = rose).
+ * Design tokens. A clinical palette: navy text on a cool white canvas, one
+ * medical-blue accent for actions and focus, and semantic colours kept apart
+ * from the accent (no flag = green, unsure = amber, refer = red). Every text
+ * colour meets WCAG AA contrast on the surfaces it is used on.
  */
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
-  --color-canvas: #f5f7f9;
+  --color-canvas: #f5f7fb;
   --color-surface: #ffffff;
-  --color-sunken: #eef2f5;
-  --color-ink: #0f1d2a;
-  --color-ink-soft: #4a5a68;
-  --color-ink-faint: #7a8995;
-  --color-line: #dde4ea;
-  --color-accent: #0b6e75;
-  --color-accent-strong: #08575d;
-  --color-accent-soft: #e3f2f2;
+  --color-sunken: #eef2f8;
+  --color-ink: #0f1b2d;
+  --color-ink-soft: #46556a;
+  --color-ink-faint: #5f6d80;
+  --color-line: #dbe2ec;
+  --color-line-strong: #c3cddb;
+  --color-accent: #1d5fc4;
+  --color-accent-strong: #164a9a;
+  --color-accent-soft: #e8f0fc;
+  --color-on-accent: #ffffff;
 
-  --color-benign: #12784a;
-  --color-benign-soft: #e4f4ec;
-  --color-caution: #9a5b00;
-  --color-caution-soft: #fdf1dc;
-  --color-alert: #b42343;
-  --color-alert-soft: #fbe7eb;
+  --color-benign: #116a43;
+  --color-benign-soft: #e7f5ee;
+  --color-caution: #8a5100;
+  --color-caution-soft: #fdf3e1;
+  --color-alert: #b4232d;
+  --color-alert-soft: #fdecec;
 
-  --shadow-card: 0 1px 2px rgb(15 29 42 / 0.04), 0 8px 24px -12px rgb(15 29 42 / 0.12);
-  --shadow-studio:
-    0 1px 1px rgb(15 29 42 / 0.03), 0 12px 32px -12px rgb(15 29 42 / 0.14),
-    0 40px 80px -40px rgb(11 110 117 / 0.18);
-  --color-glow: rgb(11 110 117 / 0.13);
-  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.05), 0 4px 16px -8px rgb(15 27 45 / 0.1);
+  --shadow-workspace: 0 1px 2px rgb(15 27 45 / 0.05), 0 12px 32px -16px rgb(15 27 45 / 0.16);
+
+  --animate-fade-in: fade-in 0.25s ease-out both;
   --animate-shimmer: shimmer 1.6s linear infinite;
-  --animate-scan: scan 1.6s ease-in-out infinite;
+  --animate-scan: scan 2.2s ease-in-out infinite;
+  --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
 
-  @keyframes fade-up {
+  @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
     }
     to {
       opacity: 1;
-      transform: none;
     }
   }
   @keyframes scan {
@@ -71,38 +71,76 @@
       background-position: 200% 0;
     }
   }
+  @keyframes indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 }
 
+/*
+ * Dark tokens, used when the viewer chose dark, or chose nothing and the system
+ * is dark. Plain CSS cannot share one block between a selector and a media
+ * query, so the two blocks below must stay identical.
+ */
+:root[data-theme="dark"] {
+  --color-canvas: #0a111d;
+  --color-surface: #101a2a;
+  --color-sunken: #0c1523;
+  --color-ink: #e6edf6;
+  --color-ink-soft: #aab6c7;
+  --color-ink-faint: #8794a8;
+  --color-line: #1f2c40;
+  --color-line-strong: #2d3d56;
+  --color-accent: #6aa5ff;
+  --color-accent-strong: #9cc2ff;
+  --color-accent-soft: #132542;
+  --color-on-accent: #07111f;
+
+  --color-benign: #5cd19a;
+  --color-benign-soft: #0e2a1f;
+  --color-caution: #f0b456;
+  --color-caution-soft: #2c2110;
+  --color-alert: #ff8c8c;
+  --color-alert-soft: #331618;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 16px -8px rgb(0 0 0 / 0.5);
+  --shadow-workspace: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px -20px rgb(0 0 0 / 0.65);
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-canvas: #0b141c;
-    --color-surface: #111d27;
-    --color-sunken: #0d1821;
-    --color-ink: #e6edf2;
-    --color-ink-soft: #a5b3bf;
-    --color-ink-faint: #74838f;
-    --color-line: #22313d;
-    --color-accent: #4cc3c6;
-    --color-accent-strong: #7bd6d8;
-    --color-accent-soft: #10302f;
+  :root:not([data-theme="light"]) {
+    --color-canvas: #0a111d;
+    --color-surface: #101a2a;
+    --color-sunken: #0c1523;
+    --color-ink: #e6edf6;
+    --color-ink-soft: #aab6c7;
+    --color-ink-faint: #8794a8;
+    --color-line: #1f2c40;
+    --color-line-strong: #2d3d56;
+    --color-accent: #6aa5ff;
+    --color-accent-strong: #9cc2ff;
+    --color-accent-soft: #132542;
+    --color-on-accent: #07111f;
 
-    --color-benign: #5fd39b;
-    --color-benign-soft: #0f2a1f;
-    --color-caution: #f2b552;
-    --color-caution-soft: #2d2210;
-    --color-alert: #ff8fa4;
-    --color-alert-soft: #331820;
+    --color-benign: #5cd19a;
+    --color-benign-soft: #0e2a1f;
+    --color-caution: #f0b456;
+    --color-caution-soft: #2c2110;
+    --color-alert: #ff8c8c;
+    --color-alert-soft: #331618;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
-    --shadow-studio:
-      0 1px 1px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6),
-      0 40px 90px -40px rgb(76 195 198 / 0.16);
-    --color-glow: rgb(76 195 198 / 0.12);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 16px -8px rgb(0 0 0 / 0.5);
+    --shadow-workspace: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px -20px rgb(0 0 0 / 0.65);
+    color-scheme: dark;
   }
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 html {
@@ -111,10 +149,7 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(60rem 28rem at 50% -6rem, var(--color-glow), transparent 70%),
-    var(--color-canvas);
-  background-repeat: no-repeat;
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -129,21 +164,7 @@ h3 {
 
 :focus-visible {
   outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-/* Staggered entrance for the hero and studio. */
-.reveal {
-  animation: var(--animate-fade-up);
-}
-.reveal-1 {
-  animation-delay: 60ms;
-}
-.reveal-2 {
-  animation-delay: 140ms;
-}
-.reveal-3 {
-  animation-delay: 220ms;
+  outline-offset: 2px;
 }
 
 .skeleton {
@@ -155,6 +176,19 @@ h3 {
   );
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
+}
+
+/* The colour scale of the "jet" map the backend uses for heatmaps. */
+.jet-scale {
+  background: linear-gradient(
+    90deg,
+    #00007f 0%,
+    #0000ff 12%,
+    #00ffff 37%,
+    #ffff00 62%,
+    #ff0000 87%,
+    #7f0000 100%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -25,13 +25,6 @@ export const UploadIcon = (props) => (
   </Icon>
 );
 
-export const CameraIcon = (props) => (
-  <Icon {...props}>
-    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-    <circle cx="12" cy="13" r="3.5" />
-  </Icon>
-);
-
 export const ShieldIcon = (props) => (
   <Icon {...props}>
     <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />
@@ -50,6 +43,13 @@ export const CheckIcon = (props) => (
   <Icon {...props}>
     <circle cx="12" cy="12" r="9" />
     <path d="m8 12 3 3 5-6" />
+  </Icon>
+);
+
+export const MinusCircleIcon = (props) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8 12h8" />
   </Icon>
 );
 
@@ -74,9 +74,37 @@ export const LockIcon = (props) => (
   </Icon>
 );
 
-export const SparkIcon = (props) => (
+export const SunIcon = (props) => (
   <Icon {...props}>
-    <path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </Icon>
+);
+
+export const MoonIcon = (props) => (
+  <Icon {...props}>
+    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+  </Icon>
+);
+
+export const ChevronDownIcon = (props) => (
+  <Icon {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+
+export const ImageIcon = (props) => (
+  <Icon {...props}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="m20.5 16-4.5-4.5L6 19.5" />
+  </Icon>
+);
+
+export const ResetIcon = (props) => (
+  <Icon {...props}>
+    <path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5" />
+    <path d="M4 4v4.5h4.5" />
   </Icon>
 );
 

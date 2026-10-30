@@ -15,7 +15,7 @@ function renderPanel(props = {}) {
 describe("UploadPanel", () => {
   it("accepts a dropped file and highlights while dragging", () => {
     const { onSelect } = renderPanel();
-    const zone = screen.getByText("Drop an image here").closest("[data-dragging]");
+    const zone = screen.getByText("Drop a dermoscopy image here").closest("[data-dragging]");
     const file = imageFile();
 
     fireEvent.dragOver(zone, { dataTransfer: { files: [] } });
@@ -26,21 +26,23 @@ describe("UploadPanel", () => {
     expect(onSelect).toHaveBeenCalledWith(file);
   });
 
-  it("opens the file picker from the drop zone button", async () => {
+  it("opens the file picker from the select button", async () => {
     const user = userEvent.setup();
     renderPanel();
     const input = screen.getByLabelText("Choose an image file");
     const click = vi.spyOn(input, "click");
-    await user.click(screen.getByRole("button", { name: /Drop an image here/ }));
+    await user.click(screen.getByRole("button", { name: "Select image" }));
     expect(click).toHaveBeenCalled();
   });
 
-  it("accepts a photo from the camera input", async () => {
-    const user = userEvent.setup();
-    const { onSelect } = renderPanel();
-    const file = imageFile("camera.jpg", "image/jpeg");
-    await user.upload(screen.getByLabelText("Take a photo"), file);
-    expect(onSelect).toHaveBeenCalledWith(file);
+  it("states the accepted formats, the size limit and the dermoscopy-only rule", () => {
+    renderPanel({ maxMb: 5 });
+    expect(screen.getByRole("button", { name: "Select image" })).toHaveAccessibleDescription(
+      /JPEG, PNG or WebP.*Up to 5 MB/,
+    );
+    expect(screen.getByText("Dermoscopy images only.")).toBeInTheDocument();
+    // Ordinary phone photos are not encouraged: there is no camera capture.
+    expect(document.querySelector("input[capture]")).toBeNull();
   });
 
   it("ignores an empty selection", () => {
