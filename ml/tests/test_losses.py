@@ -69,6 +69,7 @@ def test_cosine_schedule_warms_up_then_decays_to_zero() -> None:
 
 def test_cosine_schedule_without_warmup_starts_at_the_base_rate() -> None:
     schedule = learning_rate(TrainingConfig(lr_schedule="cosine"), 1e-3, 4, 10)
+    assert isinstance(schedule, keras.optimizers.schedules.LearningRateSchedule)
     assert float(schedule(0)) == pytest.approx(1e-3, rel=1e-6)
     assert float(schedule(40)) == pytest.approx(0.0, abs=1e-8)
 
