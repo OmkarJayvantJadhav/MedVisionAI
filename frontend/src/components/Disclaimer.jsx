@@ -2,7 +2,7 @@ import { ShieldIcon } from "./icons.jsx";
 
 const DISCLAIMER =
   "Decision support for clinicians: not a diagnosis or a medical device, and not " +
-  "clinically validated. The referral decision rests with the clinician.";
+  "clinically validated. Clinical decisions rest with the clinician.";
 
 /** The clinical disclaimer. The text comes from `/meta` when the API is reachable. */
 export default function Disclaimer({ text = DISCLAIMER }) {

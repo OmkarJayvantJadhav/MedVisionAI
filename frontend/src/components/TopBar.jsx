@@ -24,7 +24,7 @@ export default function TopBar({ serviceState }) {
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="text-[15px] font-bold tracking-tight">MedVision AI</span>
             <span className="hidden truncate text-xs text-ink-soft sm:block">
-              Skin lesion referral check
+              Explainable dermoscopy classifier
             </span>
           </span>
         </a>

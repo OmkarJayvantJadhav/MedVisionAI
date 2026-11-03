@@ -1,8 +1,9 @@
 # Architecture
 
-MedVision AI is a skin-cancer referral check for dermoscopy images, used by clinicians with
-a dermatoscope. Its job is to answer *"should this lesion be referred to a dermatologist?"*
-honestly, and to refuse images it cannot judge (users, objective and scope:
+MedVision AI is an explainable classifier for dermoscopy images, used by clinicians with a
+dermatoscope. Its job is to name the most likely lesion type honestly, raise a high-risk
+alert whenever the cancer risk is high, show where it looked, and refuse images it cannot
+judge (users, objective and scope:
 [PROJECT_PLAN.md §1](PROJECT_PLAN.md#1-problem-objective-and-scope)).
 Every part of the design follows from two constraints: **safety first**, and **inference
 on a small CPU** with no GPU or outside service.
@@ -52,7 +53,7 @@ flowchart TB
 | `app/inference/quality.py` | Brightness, sharpness (Laplacian variance) and the sensor-noise estimate |
 | `app/inference/predictor.py` | One ONNX Runtime session; turns one forward pass into the prediction and, on request, the heatmap |
 | `app/inference/calibration.py` | Logits from pooled features, temperature-scaled softmax, Mahalanobis distance |
-| `app/inference/decision.py` | The safety rules: rejection reasons, low confidence, malignancy (referral) flag, risk flag |
+| `app/inference/decision.py` | The safety rules: rejection reasons, low confidence, malignancy (high-risk alert) flag, risk flag |
 | `app/inference/cam.py` | Class activation map, colour map, overlay, fast PNG encoding |
 | `app/services/summary.py` | Summary for the clinician from a fixed template that only restates the prediction; no generated text |
 
@@ -60,7 +61,7 @@ flowchart TB
 
 A React (JavaScript) single-page app built by Vite and served as static files by the same
 FastAPI process. Tailwind CSS v4 provides the design tokens (`src/index.css`): a medical-blue
-accent, semantic colours for each referral answer, and light and dark themes that follow the
+accent, semantic colours for the alert, confidence labels and rejections, and light and dark themes that follow the
 system until the viewer picks one. Every text colour meets WCAG AA contrast in both themes.
 
 | Module | Responsibility |
@@ -70,9 +71,9 @@ system until the viewer picks one. Every text colour meets WCAG AA contrast in b
 | `src/components/UploadPanel.jsx` | Drop zone, file picker, accepted formats and size limit, the dermoscopy-only notice and the three samples. No camera capture, so ordinary phone photos are not encouraged |
 | `src/components/AnalysisPanel.jsx` | The three server-side steps in plain words, an indeterminate progress bar and the real elapsed time. It never ticks a step off, because one request runs all three |
 | `src/components/HeatmapViewer.jsx` | The selected image, the scanning line while busy, then the heatmap from the response with toggle, strength, colour scale and a note that it shows where the system looked, not a diagnosis |
-| `src/components/ResultCard.jsx` | The suggestion first (refer, unsure, no flag, not checked), summary, chance of cancer or pre-cancer against the referral line, most similar lesion type and top 3, disclaimer. All in plain language: no raw status values, version or timing |
+| `src/components/ResultCard.jsx` | The high-risk alert first when raised, then the most likely lesion type with its confidence label and top 3, the chance of cancer or pre-cancer against the alert line, the summary and the disclaimer; a rejected image shows only what to fix. All in plain language: no raw status values, version or timing |
 | `src/components/InfoSections.jsx` | Collapsible sections in plain language: how it works, what the system knows (from `/meta`), privacy, how well it works and limitations |
-| `src/lib/labels.js` | Referral answer priority and the wording for every outcome, reason and error |
+| `src/lib/labels.js` | When the alert is raised, the confidence label, rejection messages and the wording for every reason and error |
 | `src/lib/modelResults.js` | Published test results keyed by model version; shown only when `/meta` reports that exact version |
 | `src/api/client.js` | `fetch` wrapper; tests check mock responses against the committed `openapi.json` |
 
@@ -110,11 +111,12 @@ Applied in this order (`decision.py`):
 1. **Reject** if the image is too dark or too bright, too blurry, too noisy, or too far
    from the training images (out of distribution). The response lists every reason.
 2. **Low confidence** if the top calibrated probability is below the fitted threshold.
-3. **Referral flag** if melanoma + basal cell carcinoma + squamous cell carcinoma +
+3. **High-risk alert** if melanoma + basal cell carcinoma + squamous cell carcinoma +
    actinic keratosis reach the fitted threshold, whatever the top class is.
 
-The interface turns these into one referral answer, ranked refer, then unsure, then no
-flag, so a warning is never hidden behind "unsure".
+The interface shows a rejection on its own. Otherwise it shows the high-risk alert first
+when raised, then the lesion type labelled confident or uncertain, so a warning is never
+hidden behind a benign-looking type or behind "uncertain".
 
 ## Offline pipeline
 
@@ -162,8 +164,8 @@ and the out-of-distribution features from that one output.
 ### 2. Safety gates judged by silent misses
 
 Rejecting a photo is safe, because the user is told it cannot be assessed. Answering a
-malignant lesion with "no flag" is not. The robustness suite therefore measures **silent
-misses**: malignant images that pass every gate but are not flagged.
+malignant lesion without an alert is not. The robustness suite therefore measures **silent
+misses**: malignant images that pass every gate but raise no alert.
 
 - **Finding a gap:** that metric showed Gaussian noise slipping past the
   out-of-distribution gate. 30% (σ = 8) to 49% (σ = 20) of malignant images were

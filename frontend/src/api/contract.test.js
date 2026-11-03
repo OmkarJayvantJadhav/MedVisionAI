@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { REASONS, verdict } from "../lib/labels.js";
+import { REASONS, confidence, hasAlert, rejection } from "../lib/labels.js";
 import { explainResponse, metaResponse } from "../test/fixtures.js";
 import openapi from "./openapi.json";
 
@@ -33,10 +33,12 @@ describe("API contract", () => {
   });
 
   it("every status and risk value gets a plain answer, and every reason has wording", () => {
-    const decisions = ["Refer", "Unsure", "No flag", "Not checked"];
     for (const status of schemas.Status.enum) {
       for (const risk_flag of schemas.RiskFlag.enum) {
-        expect(decisions).toContain(verdict({ status, risk_flag, reasons: [] }).decision);
+        const result = { status, risk_flag, reasons: [] };
+        const answered = rejection(result) ?? confidence(result).label;
+        expect(answered).toBeTruthy();
+        expect(typeof hasAlert(result)).toBe("boolean");
       }
     }
     expect(Object.keys(REASONS).sort()).toEqual([...schemas.Reason.enum].sort());

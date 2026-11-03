@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-ink-soft sm:flex-row sm:items-center sm:justify-between">
-        <p>MedVision AI · Helps with referral decisions; not a medical device</p>
+        <p>MedVision AI · Explainable dermoscopy classifier; not a medical device</p>
         <p className="flex flex-wrap gap-x-4 gap-y-1">
           <a
             href={`${REPO_URL}/blob/main/docs/model_card.md`}

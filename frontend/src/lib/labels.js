@@ -21,58 +21,60 @@ export const REASONS = {
   out_of_distribution: "It does not look like a dermoscopy image.",
   low_confidence: "The system is not sure which type of lesion this is.",
   malignant_probability_above_threshold:
-    "The chance of cancer or pre-cancer passed the referral line.",
+    "The chance of cancer or pre-cancer passed the alert line.",
 };
 
 /**
- * The referral answer for a result: a short decision, a headline and what it
- * means for the clinician. A rejected image is never given a score-based
- * answer; otherwise the cancer flag wins over "unsure", so a warning is never
- * hidden behind uncertainty (plan §8.9).
+ * Why a rejected image was not checked, or null for a checked image. A
+ * rejected image is never given a lesion type or an alert.
  */
-export function verdict(result) {
-  if (result.status === "rejected" && result.reasons?.includes("out_of_distribution")) {
+export function rejection(result) {
+  if (result.status !== "rejected") return null;
+  if (result.reasons?.includes("out_of_distribution")) {
     return {
-      tone: "neutral",
-      decision: "Not checked",
       title: "Not checked: this is not a dermoscopy image",
       guidance:
-        "The system only works with close-up pictures of one skin lesion taken through a dermatoscope. Ordinary photos cannot be checked, so please decide using your own examination.",
-    };
-  }
-  if (result.status === "rejected") {
-    return {
-      tone: "neutral",
-      decision: "Not checked",
-      title: "Not checked: the picture is not clear enough",
-      guidance:
-        "Take the picture again, in focus and evenly lit, with the lesion filling most of the picture, then try again.",
-    };
-  }
-  if (result.risk_flag === "malignant_suspected") {
-    return {
-      tone: "danger",
-      decision: "Refer",
-      title: "Refer: possible skin cancer",
-      guidance:
-        "The chance of cancer or pre-cancer is above the referral line. Consider referring the patient to a dermatologist. The final decision is yours.",
-    };
-  }
-  if (result.status === "low_confidence") {
-    return {
-      tone: "caution",
-      decision: "Unsure",
-      title: "Unsure: the system is not confident",
-      guidance:
-        "The system could not match this lesion with confidence. If the picture is poor, take it again. If the lesion is new, changing, bleeding or worrying, refer it anyway.",
+        "The model only works with close-up pictures of one skin lesion taken through a dermatoscope. Ordinary photos cannot be checked, so please decide using your own examination.",
     };
   }
   return {
-    tone: "positive",
-    decision: "No flag",
-    title: "No flag raised",
+    title: "Not checked: the picture is not clear enough",
     guidance:
-      "The chance of cancer or pre-cancer is below the referral line. This does not rule out cancer, including rare types the system does not know. Decide using the patient's history, your examination and any change over time.",
+      "Take the picture again, in focus and evenly lit, with the lesion filling most of the picture, then try again.",
+  };
+}
+
+/**
+ * The high-risk alert. It is raised from the combined chance of cancer and
+ * pre-cancer, whatever the lesion type and however sure the model is, and the
+ * result shows it above everything else so it is never hidden (plan §8.9).
+ */
+export function hasAlert(result) {
+  return result.status !== "rejected" && result.risk_flag === "malignant_suspected";
+}
+
+export const ALERT = {
+  title: "High-risk alert: possible skin cancer",
+  guidance:
+    "The chance of cancer or pre-cancer is above the alert line, whatever the lesion type below. Consider referral to a dermatologist. The final decision is yours.",
+};
+
+export const NO_ALERT =
+  "No high-risk alert. This does not rule out cancer, including rare types the model does not know: decide using the patient's history, your examination and any change over time.";
+
+/** How sure the model is about the lesion type. */
+export function confidence(result) {
+  if (result.status === "low_confidence") {
+    return {
+      label: "Uncertain",
+      tone: "caution",
+      note: "The model is not sure which type this is. Treat the match with caution, and if the lesion is new, changing, bleeding or worrying, consider referral anyway.",
+    };
+  }
+  return {
+    label: "Confident",
+    tone: "positive",
+    note: "The closest of the eight lesion types the model knows. This is a comparison, not a diagnosis.",
   };
 }
 
