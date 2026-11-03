@@ -17,7 +17,7 @@ export const explainResponse = {
   model_version: "skin-effb0-v2.0.0",
   calibrated: false,
   thresholds_fitted: false,
-  summary: "The image most resembles Melanoma (71%).",
+  summary: "The lesion looks most like Melanoma (71%).",
   disclaimer: "Not a medical diagnosis. Please consult a qualified dermatologist.",
   latency_ms: 74.2,
   explained_class: "Melanoma",

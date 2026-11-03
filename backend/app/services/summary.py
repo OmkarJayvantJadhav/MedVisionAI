@@ -14,12 +14,10 @@ from app.inference.predictor import Prediction
 
 _REJECTION_HINTS = {
     Reason.TOO_DARK: "the photo is too dark",
-    Reason.TOO_BRIGHT: "the photo is overexposed",
+    Reason.TOO_BRIGHT: "the photo is too bright",
     Reason.TOO_BLURRY: "the photo is out of focus",
     Reason.TOO_NOISY: "the photo is grainy",
-    Reason.OUT_OF_DISTRIBUTION: (
-        "it does not look like the dermoscopy images the model was trained on"
-    ),
+    Reason.OUT_OF_DISTRIBUTION: "it does not look like a dermoscopy image",
 }
 
 
@@ -35,32 +33,31 @@ class TemplateSummaryProvider:
             problems = [_REJECTION_HINTS[r] for r in prediction.reasons if r in _REJECTION_HINTS]
             because = " and ".join(problems) or "the image could not be assessed"
             return (
-                f"The image could not be assessed reliably because {because}. "
+                f"The image could not be checked because {because}. "
                 "Retake the dermoscopy image in focus and evenly lit, with the lesion filling "
-                "the frame."
+                "most of the picture."
             )
 
         top = prediction.top_k[0]
         if prediction.status is Status.LOW_CONFIDENCE:
             others = ", ".join(p.class_name for p in prediction.top_k[1:])
             sentence = (
-                f"The model is uncertain. Its best guess is {top.class_name} "
+                f"The system is uncertain. Its closest match is {top.class_name} "
                 f"({top.probability:.0%}), followed by {others}."
             )
         else:
-            sentence = f"The image most resembles {top.class_name} ({top.probability:.0%})."
+            sentence = f"The lesion looks most like {top.class_name} ({top.probability:.0%})."
 
         if prediction.risk_flag is RiskFlag.MALIGNANT_SUSPECTED:
             sentence += (
-                f" Malignant and pre-malignant classes together reach "
-                f"{prediction.malignant_probability:.0%}, above the referral threshold, so "
-                "referral to a dermatologist should be considered."
+                f" The chance of cancer or pre-cancer is {prediction.malignant_probability:.0%}, "
+                "above the referral line, so consider referral to a dermatologist."
             )
         elif prediction.risk_flag is RiskFlag.UNCERTAIN:
             sentence += (
                 " If the lesion is new, changing or bleeding, consider referral to a "
-                "dermatologist on clinical grounds."
+                "dermatologist anyway."
             )
         if not prediction.calibrated:
-            sentence += " Percentages are uncalibrated model scores, not true probabilities."
+            sentence += " These percentages are rough scores, not reliable chances."
         return sentence

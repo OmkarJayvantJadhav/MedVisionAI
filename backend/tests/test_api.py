@@ -67,7 +67,7 @@ def test_predict_flags_malignancy(client: TestClient, image_bytes: ImageFactory)
     assert body["risk_flag"] == "malignant_suspected"
     assert body["reasons"] == ["malignant_probability_above_threshold"]
     assert len(body["top_k"]) == 3 and body["top_k"][0]["class_name"] == "Melanoma"
-    assert "dermatologist" in body["summary"] and "uncalibrated" in body["summary"]
+    assert "dermatologist" in body["summary"] and "rough scores" in body["summary"]
     assert body["disclaimer"] == DISCLAIMER
     assert body["model_version"] == "test-v0.0.1" and body["latency_ms"] >= 0
     assert response.headers["x-request-id"]

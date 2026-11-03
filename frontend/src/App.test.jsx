@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import { explainResponse, imageFile, jsonResponse, metaResponse } from "./test/fixtures.js";
 
-const VERDICT = "Refer: possible malignancy";
+const VERDICT = "Refer: possible skin cancer";
 
 function mockApi({ explain = () => jsonResponse(explainResponse) } = {}) {
   const fetchMock = vi.fn((url) => {
@@ -31,14 +31,16 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("App", () => {
-  it("always shows the disclaimer and the model facts from metadata", async () => {
+  it("always shows the disclaimer and the system facts from metadata", async () => {
     mockApi();
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1, name: "Dermoscopy Analysis" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Skin Lesion Referral Check" }),
+    ).toBeVisible();
     expect(screen.getByRole("note", { name: "Medical disclaimer" })).toBeInTheDocument();
-    const facts = await screen.findByText("Lesion types recognised");
+    const facts = await screen.findByText("Lesion types it knows");
     expect(facts.closest("dl")).toHaveTextContent("Melanoma, Melanocytic Nevus, Benign Keratosis");
-    expect(screen.getByText("Provisional (not yet fitted on data)")).toBeInTheDocument();
+    expect(screen.getAllByText("Not tuned yet in this version")).toHaveLength(2);
     expect(screen.getAllByText("skin-effb0-v2.0.0").length).toBeGreaterThan(0);
   });
 
@@ -47,19 +49,19 @@ describe("App", () => {
     const fetchMock = mockApi();
     render(<App />);
 
-    expect(screen.getByText("Drop a dermoscopy image here")).toBeInTheDocument();
+    expect(screen.getByText("Drag a dermoscopy image here")).toBeInTheDocument();
     await chooseFile(user);
     expect(screen.getByAltText("Selected skin lesion")).toBeInTheDocument();
     expect(await screen.findByText(VERDICT)).toBeInTheDocument();
     // The heatmap is layered over the user's own photo in the same viewer.
-    expect(screen.getByAltText(/Heatmap of regions/)).toBeInTheDocument();
+    expect(screen.getByAltText(/Coloured highlight/)).toBeInTheDocument();
     expect(screen.getAllByAltText("Selected skin lesion")).toHaveLength(1);
     expect(explainCalls(fetchMock)).toHaveLength(1);
     expect(explainCalls(fetchMock)[0][1]).toEqual(expect.objectContaining({ method: "POST" }));
 
-    await user.click(screen.getByRole("button", { name: "New analysis" }));
+    await user.click(screen.getByRole("button", { name: "Check another" }));
     expect(screen.queryByText(VERDICT)).not.toBeInTheDocument();
-    expect(screen.getByText("Drop a dermoscopy image here")).toBeInTheDocument();
+    expect(screen.getByText("Drag a dermoscopy image here")).toBeInTheDocument();
   });
 
   it("analyses a sample image", async () => {
@@ -106,7 +108,7 @@ describe("App", () => {
 
     await chooseFile(user);
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/model is still loading/);
+    expect(alert).toHaveTextContent(/still starting up/);
 
     await user.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(await screen.findByText(VERDICT)).toBeInTheDocument();
@@ -123,15 +125,15 @@ describe("App", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("shows the model's readiness in the header", async () => {
+  it("shows readiness in the header without the version number", async () => {
     mockApi();
     render(<App />);
-    expect(screen.getByRole("status")).toHaveTextContent("Connecting to the model");
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Model ready"));
-    expect(screen.getByRole("status")).toHaveTextContent("skin-effb0-v2.0.0");
+    expect(screen.getByRole("status")).toHaveTextContent("Starting up");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Ready"));
+    expect(screen.getByRole("status")).not.toHaveTextContent("skin-effb0-v2.0.0");
   });
 
-  it("passes the fitted referral threshold from metadata to the result", async () => {
+  it("passes the referral line from metadata to the result", async () => {
     const user = userEvent.setup();
     const fitted = { ...metaResponse, thresholds: { ...metaResponse.thresholds, fitted: true } };
     vi.stubGlobal(
@@ -145,9 +147,9 @@ describe("App", () => {
       ),
     );
     render(<App />);
-    await screen.findByText("Model ready");
+    await screen.findByText("Ready");
     await chooseFile(user);
-    expect(await screen.findByText(/Referral threshold 30%/)).toBeInTheDocument();
+    expect(await screen.findByText(/Referral line at 30%/)).toBeInTheDocument();
   });
 
   it("still works when metadata cannot be loaded", async () => {
@@ -163,7 +165,7 @@ describe("App", () => {
     render(<App />);
     await chooseFile(user);
     expect(await screen.findByText(VERDICT)).toBeInTheDocument();
-    expect(screen.getByText(/Model details appear here/)).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Model unavailable");
+    expect(screen.getByText(/These details appear once the system is ready/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Not available right now");
   });
 });

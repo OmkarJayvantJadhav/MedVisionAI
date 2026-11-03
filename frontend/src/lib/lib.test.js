@@ -1,25 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { imageFile } from "../test/fixtures.js";
-import { errorMessage, formatPercent, riskInfo, statusInfo, verdict } from "./labels.js";
+import { errorMessage, formatPercent, verdict } from "./labels.js";
 import { validateFile } from "./validation.js";
 
 describe("labels", () => {
-  it("maps statuses and risk flags to tones", () => {
-    expect(statusInfo("ok").tone).toBe("positive");
-    expect(statusInfo("rejected").label).toBe("Image not usable");
-    expect(riskInfo("malignant_suspected").tone).toBe("danger");
-    expect(statusInfo("something_new").label).toBe("Unknown");
-    expect(riskInfo(undefined).tone).toBe("neutral");
-  });
-
   it("explains error codes, falling back to the server message", () => {
     expect(errorMessage({ code: "image_too_large" })).toMatch(/too large/);
     expect(errorMessage({ code: "brand_new", message: "Server says no." })).toBe("Server says no.");
     expect(errorMessage(null)).toBe("Something went wrong.");
   });
 
-  it("puts the malignancy flag above every other verdict", () => {
+  it("puts the cancer flag above every other verdict", () => {
     expect(verdict({ status: "low_confidence", risk_flag: "malignant_suspected" }).tone).toBe(
       "danger",
     );
@@ -36,16 +28,16 @@ describe("labels", () => {
       risk_flag: "uncertain",
       reasons: ["out_of_distribution"],
     });
-    expect(blurry.title).toBe("Not assessed: image rejected");
-    expect(unfamiliar.title).toBe("Not assessed: not a dermoscopy image");
-    expect(unfamiliar.guidance).toMatch(/dermoscopy/);
+    expect(blurry.title).toBe("Not checked: the picture is not clear enough");
+    expect(unfamiliar.title).toBe("Not checked: this is not a dermoscopy image");
+    expect(unfamiliar.guidance).toMatch(/dermatoscope/);
   });
 
   it("gives every outcome a short decision label", () => {
     expect(verdict({ status: "ok", risk_flag: "malignant_suspected" }).decision).toBe("Refer");
     expect(verdict({ status: "low_confidence", risk_flag: "uncertain" }).decision).toBe("Unsure");
     expect(verdict({ status: "ok", risk_flag: "benign" }).decision).toBe("No flag");
-    expect(verdict({ status: "rejected", risk_flag: "uncertain" }).decision).toBe("Not assessed");
+    expect(verdict({ status: "rejected", risk_flag: "uncertain" }).decision).toBe("Not checked");
   });
 
   it("formats percentages", () => {

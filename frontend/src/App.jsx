@@ -19,10 +19,10 @@ export const META_RETRY_MS = 15000;
 const META_ATTEMPTS = 8;
 
 function workspaceTitle({ busy, result, error }) {
-  if (busy) return "Analysing";
+  if (busy) return "Checking";
   if (result) return "Result";
-  if (error) return "Analysis failed";
-  return "Image";
+  if (error) return "Check failed";
+  return "Picture";
 }
 
 export default function App() {
@@ -111,7 +111,7 @@ export default function App() {
     try {
       select(await loadSample(sample));
     } catch {
-      setError("The sample image could not be loaded. Please try again.");
+      setError("The example picture could not be loaded. Please try again.");
     }
   };
 
@@ -138,18 +138,23 @@ export default function App() {
 
   return (
     <div id="top" className="flex min-h-screen flex-col overflow-x-clip">
-      <TopBar serviceState={service} modelVersion={meta?.model_version} />
+      <TopBar serviceState={service} />
 
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-4 pt-10 pb-6 sm:pt-12">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dermoscopy Analysis</h1>
-          <p className="mt-1.5 text-base text-ink-soft">AI-assisted skin lesion referral support</p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Skin Lesion Referral Check
+          </h1>
+          <p className="mt-1.5 max-w-3xl text-base text-ink-soft">
+            Add a dermoscopy image of one skin lesion. You will see whether it may need referral to
+            a dermatologist, and which areas of the picture the system looked at.
+          </p>
           <div className="mt-5">
             <Disclaimer text={meta?.disclaimer} />
           </div>
         </section>
 
-        <section aria-label="Analysis workspace" className="mx-auto max-w-5xl px-4">
+        <section aria-label="Check a picture" className="mx-auto max-w-5xl px-4">
           <div
             aria-busy={busy}
             className="rounded-2xl border border-line bg-surface shadow-[var(--shadow-workspace)]"
@@ -173,7 +178,7 @@ export default function App() {
                     className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-accent ring-1 ring-line transition-colors hover:bg-accent-soft disabled:opacity-50"
                   >
                     <ResetIcon className="h-4 w-4" />
-                    New analysis
+                    Check another
                   </button>
                 </div>
                 <div className="grid items-start gap-8 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
@@ -210,7 +215,7 @@ export default function App() {
         <InfoSections meta={meta} />
       </main>
 
-      <Footer modelVersion={meta?.model_version} />
+      <Footer />
     </div>
   );
 }

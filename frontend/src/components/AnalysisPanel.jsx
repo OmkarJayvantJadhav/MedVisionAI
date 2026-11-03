@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-const STEPS = ["Image quality validation", "AI model inference", "Heatmap generation"];
+const STEPS = [
+  "Checking the picture is clear",
+  "Comparing the lesion with known types",
+  "Marking the areas it looked at",
+];
 
 /** Seconds after which a slow request is explained by the hosted service waking up. */
 export const SLOW_AFTER_S = 8;
@@ -19,20 +23,20 @@ export function AnalysisProgress() {
   }, []);
 
   return (
-    <section aria-label="Analysis in progress" className="flex flex-col gap-5">
+    <section aria-label="Check in progress" className="flex flex-col gap-5">
       <p role="status" className="sr-only">
-        Analysing the image…
+        Checking the picture…
       </p>
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-base font-semibold">Analysing image</h2>
+          <h2 className="text-base font-semibold">Checking the picture</h2>
           <span className="font-mono text-xs text-ink-soft tabular-nums" aria-hidden="true">
             {seconds} s
           </span>
         </div>
         <div
           role="progressbar"
-          aria-label="Analysis in progress"
+          aria-label="Check in progress"
           className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunken"
         >
           <div className="animate-indeterminate h-full w-2/5 rounded-full bg-accent" />
@@ -40,7 +44,7 @@ export function AnalysisProgress() {
       </div>
 
       <div>
-        <p className="text-xs text-ink-soft">The server runs these steps in one request:</p>
+        <p className="text-xs text-ink-soft">What happens, usually within a few seconds:</p>
         <ol className="mt-2 space-y-2">
           {STEPS.map((label, index) => (
             <li key={label} className="flex items-center gap-3 text-sm">
@@ -55,8 +59,8 @@ export function AnalysisProgress() {
 
       {seconds >= SLOW_AFTER_S && (
         <p className="rounded-lg bg-sunken px-3 py-2 text-xs leading-relaxed text-ink-soft">
-          Taking longer than usual. The hosted service sleeps when idle and can take up to a minute
-          to start; later analyses take a few seconds.
+          Taking longer than usual. After a quiet period the system needs up to a minute to start
+          up; the next checks will be quicker.
         </p>
       )}
 

@@ -26,7 +26,7 @@ export default function HeatmapViewer({
         {heatmapPng && visible && (
           <img
             src={`data:image/png;base64,${heatmapPng}`}
-            alt={`Heatmap of regions that influenced the ${explainedClass} score`}
+            alt={`Coloured highlight of the areas that mattered most for the ${explainedClass} match`}
             className="pointer-events-none absolute inset-0 h-full w-full"
             style={{ opacity }}
           />
@@ -58,11 +58,11 @@ export default function HeatmapViewer({
                 aria-hidden="true"
                 className="relative h-6 w-10 shrink-0 rounded-full bg-line-strong transition peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-4"
               />
-              <span>Show heatmap</span>
+              <span>Show where it looked</span>
             </label>
             <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
               <label htmlFor={sliderId} className="text-xs text-ink-soft">
-                Opacity
+                Strength
               </label>
               <input
                 id={sliderId}
@@ -82,15 +82,15 @@ export default function HeatmapViewer({
             </div>
           </div>
           <div aria-hidden="true" className="flex items-center gap-2 text-[11px] text-ink-soft">
-            <span>Lower</span>
+            <span>Less important</span>
             <span className="jet-scale h-1.5 flex-1 rounded-full" />
-            <span>Higher influence</span>
+            <span>More important</span>
           </div>
           <figcaption id={noteId} className="text-xs leading-relaxed text-ink-soft">
-            Warmer colours mark the regions that most influenced the{" "}
-            <strong className="font-semibold text-ink">{explainedClass}</strong> score. The heatmap
-            shows where the model&apos;s attention was; it is not a diagnosis and not an outline of
-            the lesion or of cancer.
+            Red and yellow mark the areas that mattered most for the{" "}
+            <strong className="font-semibold text-ink">{explainedClass}</strong> match. It shows
+            where the system looked; it is not a diagnosis and not an outline of the lesion or of
+            cancer.
           </figcaption>
         </div>
       )}

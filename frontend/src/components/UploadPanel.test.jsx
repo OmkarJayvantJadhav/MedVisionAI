@@ -15,7 +15,7 @@ function renderPanel(props = {}) {
 describe("UploadPanel", () => {
   it("accepts a dropped file and highlights while dragging", () => {
     const { onSelect } = renderPanel();
-    const zone = screen.getByText("Drop a dermoscopy image here").closest("[data-dragging]");
+    const zone = screen.getByText("Drag a dermoscopy image here").closest("[data-dragging]");
     const file = imageFile();
 
     fireEvent.dragOver(zone, { dataTransfer: { files: [] } });
@@ -31,13 +31,13 @@ describe("UploadPanel", () => {
     renderPanel();
     const input = screen.getByLabelText("Choose an image file");
     const click = vi.spyOn(input, "click");
-    await user.click(screen.getByRole("button", { name: "Select image" }));
+    await user.click(screen.getByRole("button", { name: "Choose image" }));
     expect(click).toHaveBeenCalled();
   });
 
   it("states the accepted formats, the size limit and the dermoscopy-only rule", () => {
     renderPanel({ maxMb: 5 });
-    expect(screen.getByRole("button", { name: "Select image" })).toHaveAccessibleDescription(
+    expect(screen.getByRole("button", { name: "Choose image" })).toHaveAccessibleDescription(
       /JPEG, PNG or WebP.*Up to 5 MB/,
     );
     expect(screen.getByText("Dermoscopy images only.")).toBeInTheDocument();
