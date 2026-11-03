@@ -37,7 +37,7 @@ SUMMARY = TemplateSummaryProvider()
 
 def test_confident_benign_summary() -> None:
     text = SUMMARY.summarise(prediction())
-    assert text == "The image most resembles Nevus (82%)."
+    assert text == "The lesion looks most like Nevus (82%)."
 
 
 def test_malignant_and_uncalibrated_summary() -> None:
@@ -46,7 +46,7 @@ def test_malignant_and_uncalibrated_summary() -> None:
             risk_flag=RiskFlag.MALIGNANT_SUSPECTED, malignant_probability=0.4, calibrated=False
         )
     )
-    assert "40%" in text and "dermatologist" in text and "uncalibrated" in text
+    assert "40%" in text and "dermatologist" in text and "rough scores" in text
 
 
 def test_low_confidence_lists_alternatives() -> None:
@@ -60,7 +60,7 @@ def test_low_confidence_lists_alternatives() -> None:
         ((Reason.TOO_DARK, Reason.TOO_BLURRY), "too dark and the photo is out of focus"),
         ((Reason.OUT_OF_DISTRIBUTION,), "does not look like"),
         ((Reason.TOO_NOISY,), "grainy"),
-        ((), "could not be assessed"),
+        ((), "could not be checked"),
     ],
 )
 def test_rejected_summary_explains_why(reasons: tuple[Reason, ...], phrase: str) -> None:

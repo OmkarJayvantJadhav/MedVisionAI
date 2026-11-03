@@ -159,25 +159,23 @@ makes the model more confident or less honest, is not accepted.
 
 1. **Add a dermoscopy image.** Drop it on the card, browse your files or paste it with
    Ctrl+V. No image to hand? Pick one of the three samples (held-out ISIC 2019 test images).
-2. **Watch it being analysed.** The image appears straight away, with a scanning line, the
-   three server-side steps (quality validation, model inference, heatmap) and the elapsed
-   time. The header shows whether the model is ready.
+2. **Watch it being checked.** The image appears straight away, with a scanning line, the
+   three steps the server runs (checking the picture, comparing the lesion, marking where it
+   looked) and the elapsed time. The header shows whether the system is ready.
 3. **Read the answer first.** One of four outcomes leads the result, always in this order of
    priority:
 
    | Answer | When | What it means for the clinician |
    |---|---|---|
-   | **Refer: possible malignancy** | Malignant and pre-malignant classes together pass the referral threshold | Consider referral to a dermatologist |
-   | **Unsure: low confidence** | Top confidence below the fitted threshold | Retake the image if it is poor; refer on clinical grounds if the lesion is new, changing or bleeding |
-   | **No malignancy flag** | Neither of the above | The threshold was not reached; this does not rule out malignancy |
-   | **Not assessed: image rejected** | A quality or out-of-distribution check failed | What to fix ("too grainy"), or that only dermoscopy images can be assessed |
+   | **Refer: possible skin cancer** | Malignant and pre-malignant classes together pass the referral threshold | Consider referral to a dermatologist |
+   | **Unsure: the system is not confident** | Top confidence below the fitted threshold | Retake the image if it is poor; refer anyway if the lesion is new, changing or bleeding |
+   | **No flag raised** | Neither of the above | The referral line was not reached; this does not rule out cancer |
+   | **Not checked** | A quality or out-of-distribution check failed | What to fix ("the picture is grainy"), or that only dermoscopy images can be checked |
 
-4. **Look closer.** Below the answer: the clinical summary, the combined malignancy gauge
-   with the referral threshold marked, the closest lesion type with the top three calibrated
-   probabilities, the model version and the processing time. On the image, the heatmap shows
-   where the model's attention was; toggle it or change its opacity. It is not a diagnosis
-   or an outline of cancer.
-5. **Technical details**, folded away, show the raw status, risk flag and reasons.
+4. **Look closer.** Below the answer: a plain-language summary, the chance of cancer or
+   pre-cancer with the referral line marked, and the most similar lesion type with the top
+   three matches. On the image, a coloured highlight shows where the system looked; switch
+   it off or change its strength. It is not a diagnosis or an outline of cancer.
 
 The interface is one workspace card that changes with the state rather than a dashboard of
 panels, with background information in collapsible sections below it. It works in light and

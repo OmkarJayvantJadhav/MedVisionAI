@@ -14,7 +14,7 @@ export default function Disclaimer({ text = DISCLAIMER }) {
     >
       <ShieldIcon className="mt-0.5 h-5 w-5 shrink-0 text-caution" />
       <p>
-        <strong className="font-semibold">Clinical disclaimer. </strong>
+        <strong className="font-semibold">Please note. </strong>
         {text}
       </p>
     </div>

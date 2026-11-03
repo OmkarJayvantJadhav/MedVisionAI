@@ -7,9 +7,9 @@ import { InfoIcon, UploadIcon } from "./icons.jsx";
 function SampleList({ busy, onSample }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold">Or use a sample image</h3>
+      <h3 className="text-sm font-semibold">Or try an example</h3>
       <p className="mt-0.5 text-xs text-ink-soft">
-        Held-out ISIC 2019 test images (CC BY-NC 4.0), never used in training.
+        Real dermoscopy images the system never saw while it was learning.
       </p>
       <ul className="mt-3 grid grid-cols-3 gap-3">
         {SAMPLES.map((sample) => (
@@ -73,9 +73,9 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
         <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent-soft text-accent">
           <UploadIcon className="h-6 w-6" />
         </span>
-        <p className="mt-4 text-base font-semibold">Drop a dermoscopy image here</p>
+        <p className="mt-4 text-base font-semibold">Drag a dermoscopy image here</p>
         <p className="mt-1 text-sm text-ink-soft">
-          or select a file<span className="hidden sm:inline">, or paste with Ctrl+V</span>
+          or choose a file<span className="hidden sm:inline">, or paste with Ctrl+V</span>
         </p>
         <button
           type="button"
@@ -84,7 +84,7 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
           aria-describedby={hintId}
           className="mt-5 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-60"
         >
-          Select image
+          Choose image
         </button>
         <p id={hintId} className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-ink-soft">
           <span className="rounded-md bg-surface px-2 py-1 ring-1 ring-line">
@@ -98,9 +98,9 @@ export default function UploadPanel({ busy = false, maxMb = DEFAULT_MAX_MB, onSe
       <div className="flex items-start gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm leading-relaxed">
         <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
         <p>
-          <strong className="font-semibold">Dermoscopy images only.</strong> Use an image of a
-          single lesion taken through a dermatoscope. Ordinary clinical or smartphone photos are
-          outside what the model was trained on and are rejected rather than assessed.
+          <strong className="font-semibold">Dermoscopy images only.</strong> Use a close-up of one
+          skin lesion taken through a dermatoscope. Ordinary photos, including phone photos, cannot
+          be checked and will be turned away.
         </p>
       </div>
 

@@ -1,14 +1,14 @@
 const STATES = {
-  connecting: { dot: "bg-caution animate-pulse", label: "Connecting to the model" },
-  ready: { dot: "bg-benign", label: "Model ready" },
-  unavailable: { dot: "bg-alert", label: "Model unavailable" },
+  connecting: { dot: "bg-caution animate-pulse", label: "Starting up" },
+  ready: { dot: "bg-benign", label: "Ready" },
+  unavailable: { dot: "bg-alert", label: "Not available right now" },
 };
 
 /**
  * Readiness of the API and model, from the `/meta` request: the backend only
  * answers it once the model is loaded and checksum-verified (503 before that).
  */
-export default function ServiceStatus({ state, modelVersion = null }) {
+export default function ServiceStatus({ state }) {
   const info = STATES[state] ?? STATES.connecting;
   return (
     <p
@@ -17,11 +17,6 @@ export default function ServiceStatus({ state, modelVersion = null }) {
     >
       <span aria-hidden="true" className={`h-2 w-2 rounded-full ${info.dot}`} />
       <span>{info.label}</span>
-      {state === "ready" && modelVersion && (
-        <span className="hidden font-mono text-[11px] text-ink-faint md:inline">
-          {modelVersion}
-        </span>
-      )}
     </p>
   );
 }

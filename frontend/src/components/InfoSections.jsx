@@ -3,13 +3,6 @@ import { publishedResults } from "../lib/modelResults.js";
 import { ChevronDownIcon } from "./icons.jsx";
 import { REPO_URL } from "./TopBar.jsx";
 
-const BACKBONES = {
-  efficientnetb0: "EfficientNet-B0",
-  efficientnetv2s: "EfficientNetV2-S",
-  convnext_tiny: "ConvNeXt-Tiny",
-  mobilenetv2: "MobileNetV2",
-};
-
 const MODEL_CARD_URL = `${REPO_URL}/blob/main/docs/model_card.md`;
 
 /** Percent with one decimal when the data has it (99.6%, not a rounded 100%). */
@@ -41,33 +34,33 @@ function Fact({ label, children }) {
   );
 }
 
-function ModelCardLink() {
+function ReportLink() {
   return (
     <a
       href={MODEL_CARD_URL}
       className="font-semibold text-accent underline-offset-4 hover:underline"
     >
-      model card
+      full test report
     </a>
   );
 }
 
 const STEPS = [
   {
-    title: "Check the image",
-    text: "Brightness, sharpness and sensor noise are measured, and the image's features are compared with the training images. Images that fail are not assessed.",
+    title: "Checks the picture",
+    text: "Makes sure the picture is clear, well lit, not grainy and really a dermoscopy image. If it is not, the system asks for a better picture instead of guessing.",
   },
   {
-    title: "Score eight lesion types",
-    text: "A neural network gives a probability for each lesion type; temperature scaling calibrates them.",
+    title: "Compares the lesion",
+    text: "Compares the lesion with eight common types it learned from about 25,000 images labelled by skin experts.",
   },
   {
-    title: "Answer the referral question",
-    text: "Refer when the malignant and pre-malignant types together reach the referral threshold; unsure when the top answer is below the confidence threshold; otherwise no flag.",
+    title: "Answers the referral question",
+    text: "Suggests referral when the chance of cancer or pre-cancer passes the referral line, says it is unsure when it cannot match the lesion confidently, and otherwise raises no flag.",
   },
   {
-    title: "Show where it looked",
-    text: "A heatmap from the same forward pass shows which regions drove the score.",
+    title: "Shows where it looked",
+    text: "Colours the areas of the picture that mattered most for its answer.",
   },
 ];
 
@@ -84,45 +77,43 @@ function HowItWorks() {
         ))}
       </ol>
       <p className="mt-4 text-ink-soft">
-        Every step runs on the server&apos;s CPU with ONNX Runtime, in one request. The clinician
-        makes the referral decision; the tool supports it.
+        The system supports your referral decision; it does not make it.
       </p>
     </>
   );
 }
 
-function ModelFacts({ meta }) {
+function SystemFacts({ meta }) {
   if (!meta) {
-    return <p className="text-ink-soft">Model details appear here once the server is reachable.</p>;
+    return <p className="text-ink-soft">These details appear once the system is ready.</p>;
   }
-  const gates = [];
-  if (meta.thresholds?.ood_mahalanobis != null) gates.push("non-dermoscopy images");
-  if (meta.thresholds?.max_noise != null) gates.push("grainy images");
+  const turnedAway = [];
+  if (meta.thresholds?.ood_mahalanobis != null) turnedAway.push("Pictures that are not dermoscopy");
+  if (meta.thresholds?.max_noise != null) turnedAway.push("grainy pictures");
   return (
     <dl>
+      <Fact label="Lesion types it knows">{meta.class_names.join(", ")}</Fact>
+      <Fact label="Counted as cancer or pre-cancer">{meta.malignant_classes.join(", ")}</Fact>
+      <Fact label="When it suggests referral">
+        {meta.thresholds.fitted
+          ? `When the chance of cancer or pre-cancer is ${formatPercent(meta.thresholds.malignant)} or more`
+          : "Not tuned yet in this version"}
+      </Fact>
+      <Fact label="When it says unsure">
+        {meta.thresholds.fitted
+          ? `When its best match is below ${formatPercent(meta.thresholds.low_confidence)}`
+          : "Not tuned yet in this version"}
+      </Fact>
+      <Fact label="Percentages">
+        {meta.calibrated
+          ? "Adjusted so that a 70% match is right about 7 times in 10"
+          : "Rough scores, not reliable chances"}
+      </Fact>
+      {turnedAway.length > 0 && <Fact label="Turns away">{turnedAway.join(" and ")}</Fact>}
+      <Fact label="Pictures accepted">JPEG, PNG or WebP, up to {meta.max_upload_mb} MB</Fact>
       <Fact label="Version">
         <span className="font-mono text-[13px]">{meta.model_version}</span>
       </Fact>
-      <Fact label="Architecture">
-        {BACKBONES[meta.backbone] ?? meta.backbone}, {meta.image_size}×{meta.image_size} px input
-      </Fact>
-      <Fact label="Lesion types recognised">{meta.class_names.join(", ")}</Fact>
-      <Fact label="Counted as malignant or pre-malignant">{meta.malignant_classes.join(", ")}</Fact>
-      <Fact label="Calibration">
-        {meta.calibrated ? "Temperature scaling, fitted on validation data" : "Not calibrated"}
-      </Fact>
-      <Fact label="Decision thresholds">
-        {meta.thresholds.fitted ? (
-          <>
-            Refer at {formatPercent(meta.thresholds.malignant)} combined malignancy probability ·
-            unsure below {formatPercent(meta.thresholds.low_confidence)} confidence
-          </>
-        ) : (
-          "Provisional (not yet fitted on data)"
-        )}
-      </Fact>
-      {gates.length > 0 && <Fact label="Rejects">{gates.join(" and ")}</Fact>}
-      <Fact label="Upload limit">JPEG, PNG or WebP, up to {meta.max_upload_mb} MB</Fact>
     </dl>
   );
 }
@@ -132,31 +123,34 @@ function Performance({ meta }) {
   if (!results) {
     return (
       <p className="text-ink-soft">
-        Measured results for each model version are published in the <ModelCardLink />.
+        Test results for each version are in the <ReportLink />.
       </p>
     );
   }
   const rows = [
-    ["Malignant lesions flagged for referral (recall)", precisePercent(results.malignantRecall)],
-    ["Flagged lesions that were malignant (precision)", precisePercent(results.malignantPrecision)],
-    ["Images flagged for referral", precisePercent(results.referralRate)],
-    ["Calibration error (ECE)", results.ece.toFixed(3)],
+    ["Cancers and pre-cancers flagged for referral", precisePercent(results.malignantRecall)],
     [
-      "Answered with confidence",
-      `${precisePercent(results.confidentShare)}, of which ${precisePercent(results.confidentAccuracy)} correct`,
+      "Flagged lesions that really were cancer or pre-cancer",
+      precisePercent(results.malignantPrecision),
     ],
-    ["Lesion images passing the input checks", precisePercent(results.lesionsAccepted)],
-    ["Everyday photos rejected", precisePercent(results.photosRejected)],
+    ["All lesions flagged for referral", precisePercent(results.referralRate)],
     [
-      "Top-1 accuracy · macro F1",
-      `${precisePercent(results.accuracy)} · ${results.macroF1.toFixed(3)}`,
+      "Answered confidently",
+      `${precisePercent(results.confidentShare)} of pictures, and ${precisePercent(results.confidentAccuracy)} of those were right`,
     ],
+    ["Lesion type matched correctly", precisePercent(results.accuracy)],
+    [
+      "How far its percentages were off",
+      `About ${Math.round(results.ece * 100)} percentage points on average`,
+    ],
+    ["Clear dermoscopy pictures accepted", precisePercent(results.lesionsAccepted)],
+    ["Everyday photos turned away", precisePercent(results.photosRejected)],
   ];
   return (
     <>
       <p className="text-ink-soft">
-        Held-out ISIC 2019 test split ({results.testImages.toLocaleString("en")} images) for the
-        served model, <span className="font-mono text-[13px]">{meta.model_version}</span>.
+        Tested on {results.testImages.toLocaleString("en")} dermoscopy pictures that the system
+        never saw while it was learning.
       </p>
       <dl className="mt-3">
         {rows.map(([label, value]) => (
@@ -166,21 +160,21 @@ function Performance({ meta }) {
         ))}
       </dl>
       <p className="mt-3 text-ink-soft">
-        The test split is 37% malignant. In primary care, where cancer is rarer, a smaller share of
-        flagged lesions would be malignant. Results by sex, age and body site, and under image
-        damage, are in the <ModelCardLink />.
+        37% of the test pictures were cancer or pre-cancer. In everyday practice, where cancer is
+        rarer, fewer of the flagged lesions would turn out to be cancer. Results for men and women,
+        age groups, body areas and damaged pictures are in the <ReportLink />.
       </p>
     </>
   );
 }
 
 const LIMITATIONS = [
-  "Dermoscopy images only: clinical and smartphone photos are rejected, not assessed.",
-  "Eight lesion types only. Rarer skin cancers were never seen in training, so a no-flag answer never rules them out.",
-  "To catch 9 in 10 malignant lesions, the model flags a large share of lesions for referral.",
-  "Performance on darker skin tones is unknown: the training data does not record skin type.",
-  "Heavily compressed JPEG images can be misread without a warning.",
-  "Evaluated on one dataset, without external or prospective clinical validation. Not a medical device.",
+  "Works only with dermoscopy images. Ordinary photos, including phone photos, are turned away.",
+  "Knows eight lesion types only. It never learned rarer skin cancers, so a no-flag answer never rules them out.",
+  "To catch 9 in 10 cancers and pre-cancers, it flags about half of all lesions for referral.",
+  "How well it works on darker skin is unknown: the pictures it learned from do not record skin tone.",
+  "Heavily compressed, low-quality JPEG pictures can be misread without a warning.",
+  "Tested on one collection of pictures only, not in real clinics. It is not a medical device.",
 ];
 
 /** Collapsible background sections below the workspace. */
@@ -191,45 +185,39 @@ export default function InfoSections({ meta }) {
         About MedVision AI
       </h2>
       <p className="mt-1 text-sm text-ink-soft">
-        How the referral support works, what it can and cannot do, and how images are handled.
+        How the check works, what it can and cannot do, and what happens to your pictures.
       </p>
       <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-card)]">
         <Panel
           id="how-it-works"
           title="How MedVision AI works"
-          summary="Four steps in one request: check, score, answer, explain."
+          summary="Four steps: check, compare, answer, show."
         >
           <HowItWorks />
         </Panel>
-        <Panel id="model" title="About the AI model" summary="Read live from the served model.">
-          <ModelFacts meta={meta} />
-        </Panel>
         <Panel
-          id="privacy"
-          title="Privacy and data handling"
-          summary="Images are analysed in memory and never stored."
+          id="model"
+          title="What the system knows"
+          summary="Lesion types, when it suggests referral, and accepted pictures."
         >
+          <SystemFacts meta={meta} />
+        </Panel>
+        <Panel id="privacy" title="Privacy" summary="Pictures are never saved.">
           <ul className="list-disc space-y-1.5 pl-5 text-ink-soft">
-            <li>Images are analysed in memory and discarded as soon as the result is sent.</li>
-            <li>They are not written to disk, logged, or used for training.</li>
-            <li>
-              No accounts, tracking, analytics or third-party requests; fonts are self-hosted.
-            </li>
-            <li>Only your theme choice is remembered, in this browser.</li>
+            <li>Pictures are checked and deleted as soon as the result is shown.</li>
+            <li>They are never saved, recorded or used to teach the system.</li>
+            <li>No accounts and no tracking, and nothing is sent to other companies.</li>
+            <li>Only your light or dark choice is remembered, in this browser.</li>
           </ul>
         </Panel>
         <Panel
           id="performance"
-          title="Model performance"
-          summary="Measured on held-out test images, never used in training."
+          title="How well it works"
+          summary="Tested on pictures the system never saw while learning."
         >
           <Performance meta={meta} />
         </Panel>
-        <Panel
-          id="limitations"
-          title="Known limitations"
-          summary="What the referral support cannot do."
-        >
+        <Panel id="limitations" title="Limitations" summary="What the system cannot do.">
           <ul className="list-disc space-y-1.5 pl-5 text-ink-soft">
             {LIMITATIONS.map((limit) => (
               <li key={limit}>{limit}</li>

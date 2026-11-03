@@ -9,10 +9,14 @@ afterEach(() => vi.useRealTimers());
 describe("AnalysisProgress", () => {
   it("lists the steps without claiming any of them has finished", () => {
     render(<AnalysisProgress />);
-    expect(screen.getByRole("progressbar", { name: "Analysis in progress" })).not.toHaveAttribute(
+    expect(screen.getByRole("progressbar", { name: "Check in progress" })).not.toHaveAttribute(
       "aria-valuenow",
     );
-    for (const step of ["Image quality validation", "AI model inference", "Heatmap generation"]) {
+    for (const step of [
+      "Checking the picture is clear",
+      "Comparing the lesion with known types",
+      "Marking the areas it looked at",
+    ]) {
       expect(screen.getByText(step)).toBeInTheDocument();
     }
     act(() => vi.advanceTimersByTime(3000));

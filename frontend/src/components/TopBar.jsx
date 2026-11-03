@@ -14,8 +14,8 @@ function Logo() {
   );
 }
 
-/** Branding, the application name, model readiness and the theme switch. */
-export default function TopBar({ serviceState, modelVersion }) {
+/** Branding, the application name, readiness and the theme switch. */
+export default function TopBar({ serviceState }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
@@ -24,12 +24,12 @@ export default function TopBar({ serviceState, modelVersion }) {
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="text-[15px] font-bold tracking-tight">MedVision AI</span>
             <span className="hidden truncate text-xs text-ink-soft sm:block">
-              Dermoscopy referral support
+              Skin lesion referral check
             </span>
           </span>
         </a>
         <div className="flex items-center gap-2">
-          <ServiceStatus state={serviceState} modelVersion={modelVersion} />
+          <ServiceStatus state={serviceState} />
           <ThemeToggle />
           <a
             href={REPO_URL}

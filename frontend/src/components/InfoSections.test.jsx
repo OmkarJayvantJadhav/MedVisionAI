@@ -9,10 +9,10 @@ describe("InfoSections", () => {
     render(<InfoSections meta={metaResponse} />);
     for (const title of [
       "How MedVision AI works",
-      "About the AI model",
-      "Privacy and data handling",
-      "Model performance",
-      "Known limitations",
+      "What the system knows",
+      "Privacy",
+      "How well it works",
+      "Limitations",
     ]) {
       expect(screen.getByText(title).closest("details")).not.toHaveAttribute("open");
     }
@@ -20,17 +20,31 @@ describe("InfoSections", () => {
 
   it("shows published results only for the exact served model version", () => {
     const { rerender } = render(<InfoSections meta={metaResponse} />);
-    expect(screen.getByText(/Measured results for each model version/)).toBeInTheDocument();
-    expect(screen.queryByText("Everyday photos rejected")).not.toBeInTheDocument();
+    expect(screen.getByText(/Test results for each version/)).toBeInTheDocument();
+    expect(screen.queryByText("Everyday photos turned away")).not.toBeInTheDocument();
 
     rerender(<InfoSections meta={{ ...metaResponse, model_version: "skin-effb0-v2.2.0" }} />);
-    expect(screen.getByText("Everyday photos rejected").nextSibling).toHaveTextContent("99.6%");
-    expect(screen.getByText(/Malignant lesions flagged/).nextSibling).toHaveTextContent("90.4%");
+    expect(screen.getByText("Everyday photos turned away").nextSibling).toHaveTextContent("99.6%");
+    expect(screen.getByText(/pre-cancers flagged for referral/).nextSibling).toHaveTextContent(
+      "90.4%",
+    );
+    expect(screen.getByText(/percentages were off/).nextSibling).toHaveTextContent(
+      "About 3 percentage points",
+    );
   });
 
   it("states that a no-flag answer never rules out rarer cancers", () => {
     render(<InfoSections meta={null} />);
     expect(screen.getByText(/never rules them out/)).toBeInTheDocument();
-    expect(screen.getByText(/Model details appear here/)).toBeInTheDocument();
+    expect(screen.getByText(/These details appear once the system is ready/)).toBeInTheDocument();
+  });
+
+  it("avoids technical terms", () => {
+    const { container } = render(
+      <InfoSections meta={{ ...metaResponse, model_version: "skin-effb0-v2.2.0" }} />,
+    );
+    expect(container).not.toHaveTextContent(
+      /ONNX|CPU|inference|temperature|calibrat|threshold|ECE|F1|held-out|validation|architecture|EfficientNet/i,
+    );
   });
 });
