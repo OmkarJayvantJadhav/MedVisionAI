@@ -16,6 +16,7 @@ export const PUBLISHED_RESULTS = {
     lesionsAccepted: 0.984,
     photosRejected: 0.996,
     accuracy: 0.708,
+    melanomaRecall: 0.43,
     macroF1: 0.508,
   },
 };

@@ -8,7 +8,7 @@ from app.inference.decision import Reason, RiskFlag, Status
 
 DISCLAIMER = (
     "Decision support for clinicians: not a diagnosis or a medical device, and not "
-    "clinically validated. The referral decision rests with the clinician."
+    "clinically validated. Clinical decisions rest with the clinician."
 )
 
 

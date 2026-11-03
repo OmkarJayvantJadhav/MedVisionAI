@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import { explainResponse, imageFile, jsonResponse, metaResponse } from "./test/fixtures.js";
 
-const VERDICT = "Refer: possible skin cancer";
+const VERDICT = "High-risk alert: possible skin cancer";
 
 function mockApi({ explain = () => jsonResponse(explainResponse) } = {}) {
   const fetchMock = vi.fn((url) => {
@@ -35,7 +35,7 @@ describe("App", () => {
     mockApi();
     render(<App />);
     expect(
-      screen.getByRole("heading", { level: 1, name: "Skin Lesion Referral Check" }),
+      screen.getByRole("heading", { level: 1, name: "Dermoscopy Lesion Classifier" }),
     ).toBeVisible();
     expect(screen.getByRole("note", { name: "Medical disclaimer" })).toBeInTheDocument();
     const facts = await screen.findByText("Lesion types it knows");
@@ -133,7 +133,7 @@ describe("App", () => {
     expect(screen.getByRole("status")).not.toHaveTextContent("skin-effb0-v2.0.0");
   });
 
-  it("passes the referral line from metadata to the result", async () => {
+  it("passes the alert line from metadata to the result", async () => {
     const user = userEvent.setup();
     const fitted = { ...metaResponse, thresholds: { ...metaResponse.thresholds, fitted: true } };
     vi.stubGlobal(
@@ -149,7 +149,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("Ready");
     await chooseFile(user);
-    expect(await screen.findByText(/Referral line at 30%/)).toBeInTheDocument();
+    expect(await screen.findByText(/Alert line at 30%/)).toBeInTheDocument();
   });
 
   it("still works when metadata cannot be loaded", async () => {

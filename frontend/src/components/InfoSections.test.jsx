@@ -25,9 +25,10 @@ describe("InfoSections", () => {
 
     rerender(<InfoSections meta={{ ...metaResponse, model_version: "skin-effb0-v2.2.0" }} />);
     expect(screen.getByText("Everyday photos turned away").nextSibling).toHaveTextContent("99.6%");
-    expect(screen.getByText(/pre-cancers flagged for referral/).nextSibling).toHaveTextContent(
+    expect(screen.getByText(/pre-cancers that raised the alert/).nextSibling).toHaveTextContent(
       "90.4%",
     );
+    expect(screen.getByText("Melanomas named as melanoma").nextSibling).toHaveTextContent("43%");
     expect(screen.getByText(/percentages were off/).nextSibling).toHaveTextContent(
       "About 3 percentage points",
     );

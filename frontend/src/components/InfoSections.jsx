@@ -55,8 +55,8 @@ const STEPS = [
     text: "Compares the lesion with eight common types it learned from about 25,000 images labelled by skin experts.",
   },
   {
-    title: "Answers the referral question",
-    text: "Suggests referral when the chance of cancer or pre-cancer passes the referral line, says it is unsure when it cannot match the lesion confidently, and otherwise raises no flag.",
+    title: "Names the type and checks the risk",
+    text: "Gives the most likely of the eight types and says whether it is confident or uncertain. Separately, it raises a high-risk alert when the cancer and pre-cancer types together pass the alert line, whatever the most likely type is.",
   },
   {
     title: "Shows where it looked",
@@ -77,7 +77,7 @@ function HowItWorks() {
         ))}
       </ol>
       <p className="mt-4 text-ink-soft">
-        The system supports your referral decision; it does not make it.
+        The model supports your clinical judgement; it does not replace it.
       </p>
     </>
   );
@@ -94,7 +94,7 @@ function SystemFacts({ meta }) {
     <dl>
       <Fact label="Lesion types it knows">{meta.class_names.join(", ")}</Fact>
       <Fact label="Counted as cancer or pre-cancer">{meta.malignant_classes.join(", ")}</Fact>
-      <Fact label="When it suggests referral">
+      <Fact label="When it raises a high-risk alert">
         {meta.thresholds.fitted
           ? `When the chance of cancer or pre-cancer is ${formatPercent(meta.thresholds.malignant)} or more`
           : "Not tuned yet in this version"}
@@ -128,17 +128,15 @@ function Performance({ meta }) {
     );
   }
   const rows = [
-    ["Cancers and pre-cancers flagged for referral", precisePercent(results.malignantRecall)],
-    [
-      "Flagged lesions that really were cancer or pre-cancer",
-      precisePercent(results.malignantPrecision),
-    ],
-    ["All lesions flagged for referral", precisePercent(results.referralRate)],
+    ["Lesion type matched correctly", precisePercent(results.accuracy)],
+    ["Melanomas named as melanoma", precisePercent(results.melanomaRecall)],
+    ["Cancers and pre-cancers that raised the alert", precisePercent(results.malignantRecall)],
+    ["Alerts that really were cancer or pre-cancer", precisePercent(results.malignantPrecision)],
+    ["All lesions that raised the alert", precisePercent(results.referralRate)],
     [
       "Answered confidently",
       `${precisePercent(results.confidentShare)} of pictures, and ${precisePercent(results.confidentAccuracy)} of those were right`,
     ],
-    ["Lesion type matched correctly", precisePercent(results.accuracy)],
     [
       "How far its percentages were off",
       `About ${Math.round(results.ece * 100)} percentage points on average`,
@@ -161,8 +159,8 @@ function Performance({ meta }) {
       </dl>
       <p className="mt-3 text-ink-soft">
         37% of the test pictures were cancer or pre-cancer. In everyday practice, where cancer is
-        rarer, fewer of the flagged lesions would turn out to be cancer. Results for men and women,
-        age groups, body areas and damaged pictures are in the <ReportLink />.
+        rarer, fewer of the alerts would turn out to be cancer. Results for men and women, age
+        groups, body areas and damaged pictures are in the <ReportLink />.
       </p>
     </>
   );
@@ -171,7 +169,8 @@ function Performance({ meta }) {
 const LIMITATIONS = [
   "Works only with dermoscopy images. Ordinary photos, including phone photos, are turned away.",
   "Knows eight lesion types only. It never learned rarer skin cancers, so a no-flag answer never rules them out.",
-  "To catch 9 in 10 cancers and pre-cancers, it flags about half of all lesions for referral.",
+  "The lesion type is right about 7 times in 10, and melanoma is named correctly less than half the time. The high-risk alert, not the lesion type, is what catches most cancers.",
+  "To catch 9 in 10 cancers and pre-cancers, the alert is raised for about half of all lesions.",
   "How well it works on darker skin is unknown: the pictures it learned from do not record skin tone.",
   "Heavily compressed, low-quality JPEG pictures can be misread without a warning.",
   "Tested on one collection of pictures only, not in real clinics. It is not a medical device.",
@@ -198,7 +197,7 @@ export default function InfoSections({ meta }) {
         <Panel
           id="model"
           title="What the system knows"
-          summary="Lesion types, when it suggests referral, and accepted pictures."
+          summary="Lesion types, when it raises an alert, and accepted pictures."
         >
           <SystemFacts meta={meta} />
         </Panel>

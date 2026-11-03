@@ -11,14 +11,17 @@ const rejected = {
   reasons: ["too_blurry"],
   calibrated: true,
 };
+const confidentNoAlert = { ...explainResponse, status: "ok", risk_flag: "benign" };
+const uncertainNoAlert = { ...explainResponse, status: "low_confidence", risk_flag: "uncertain" };
 
 describe("ResultCard", () => {
-  it("leads with the suggestion, then the evidence and the disclaimer", () => {
+  it("puts the high-risk alert above the lesion type, then the evidence and disclaimer", () => {
     render(<ResultCard result={explainResponse} />);
 
     const heading = screen.getByRole("heading", { level: 2 });
-    expect(heading).toHaveTextContent("Refer: possible skin cancer");
-    expect(screen.getByText("Refer")).toBeInTheDocument();
+    expect(heading).toHaveTextContent("High-risk alert: possible skin cancer");
+    const lesionType = screen.getByText("Most likely lesion type");
+    expect(heading.compareDocumentPosition(lesionType)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByText(explainResponse.summary)).toBeInTheDocument();
 
     const gauge = screen.getByRole("meter", { name: "Chance of cancer or pre-cancer" });
@@ -27,8 +30,56 @@ describe("ResultCard", () => {
     expect(within(top).getAllByRole("meter")).toHaveLength(3);
     expect(within(top).getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "71");
 
+    expect(screen.queryByText(/No high-risk alert/)).not.toBeInTheDocument();
     expect(screen.getByText(/rough scores, not reliable chances/)).toBeInTheDocument();
     expect(screen.getByText(/Not a medical diagnosis/)).toBeInTheDocument();
+  });
+
+  it("leads with the lesion type and how sure the model is when there is no alert", () => {
+    const outcomes = [
+      [confidentNoAlert, "Confident"],
+      [uncertainNoAlert, "Uncertain"],
+    ];
+    for (const [result, label] of outcomes) {
+      const { unmount } = render(<ResultCard result={result} />);
+      expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Melanoma 71%");
+      expect(screen.getByText(label, { selector: "span" })).toBeInTheDocument();
+      expect(screen.queryByText(/High-risk alert/)).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("keeps the alert first even when the model is uncertain about the type", () => {
+    render(<ResultCard result={{ ...explainResponse, status: "low_confidence" }} />);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("High-risk alert");
+    expect(screen.getByText("Uncertain", { selector: "span" })).toBeInTheDocument();
+  });
+
+  it("never calls a result without an alert benign, healthy or cancer-free", () => {
+    render(<ResultCard result={confidentNoAlert} />);
+    const note = screen.getByText(/No high-risk alert/);
+    expect(note).toHaveTextContent(/does not rule out cancer/);
+    expect(note).not.toHaveTextContent(/healthy|cancer-free|benign/i);
+  });
+
+  it("shows the alert line only when it has been tuned", () => {
+    const fitted = { ...explainResponse, thresholds_fitted: true };
+    const { rerender } = render(
+      <ResultCard result={fitted} malignantThreshold={0.19} malignantClasses={["Melanoma"]} />,
+    );
+    expect(screen.getByText(/Alert line at 19%/)).toBeInTheDocument();
+    expect(screen.getByRole("meter", { name: "Chance of cancer or pre-cancer" })).toHaveAttribute(
+      "aria-valuetext",
+      "74%, above the alert line at 19%",
+    );
+    expect(screen.getByText(/Adds together melanoma/)).toBeInTheDocument();
+
+    rerender(<ResultCard result={explainResponse} malignantThreshold={0.19} />);
+    expect(screen.queryByText(/Alert line at 19%/)).not.toBeInTheDocument();
+    expect(screen.getByText(/has not been tuned yet/)).toBeInTheDocument();
+
+    rerender(<ResultCard result={fitted} malignantThreshold={null} />);
+    expect(screen.getByText(/alert line could not be loaded/)).toBeInTheDocument();
   });
 
   it("uses plain words, not technical terms", () => {
@@ -45,60 +96,15 @@ describe("ResultCard", () => {
     expect(screen.queryByText(explainResponse.model_version)).not.toBeInTheDocument();
   });
 
-  it("shows the referral line only when it has been tuned", () => {
-    const fitted = { ...explainResponse, thresholds_fitted: true };
-    const { rerender } = render(
-      <ResultCard result={fitted} malignantThreshold={0.19} malignantClasses={["Melanoma"]} />,
-    );
-    expect(screen.getByText(/Referral line at 19%/)).toBeInTheDocument();
-    expect(screen.getByRole("meter", { name: "Chance of cancer or pre-cancer" })).toHaveAttribute(
-      "aria-valuetext",
-      "74%, above the referral line at 19%",
-    );
-    expect(screen.getByText(/Adds together melanoma/)).toBeInTheDocument();
-
-    rerender(<ResultCard result={explainResponse} malignantThreshold={0.19} />);
-    expect(screen.queryByText(/Referral line at 19%/)).not.toBeInTheDocument();
-    expect(screen.getByText(/has not been tuned yet/)).toBeInTheDocument();
-
-    rerender(<ResultCard result={fitted} malignantThreshold={null} />);
-    expect(screen.getByText(/referral line could not be loaded/)).toBeInTheDocument();
-  });
-
-  it("supports all four outcomes, each with its own decision label", () => {
-    const outcomes = [
-      [explainResponse, "Refer", "Refer: possible skin cancer"],
-      [
-        { ...explainResponse, status: "low_confidence", risk_flag: "uncertain" },
-        "Unsure",
-        "Unsure: the system is not confident",
-      ],
-      [{ ...explainResponse, status: "ok", risk_flag: "benign" }, "No flag", "No flag raised"],
-      [rejected, "Not checked", "Not checked: the picture is not clear enough"],
-    ];
-    for (const [result, decision, title] of outcomes) {
-      const { unmount } = render(<ResultCard result={result} />);
-      expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(title);
-      expect(screen.getByText(decision, { selector: "span" })).toBeInTheDocument();
-      unmount();
-    }
-  });
-
-  it("never calls a no-flag result benign, healthy or cancer-free", () => {
-    render(<ResultCard result={{ ...explainResponse, status: "ok", risk_flag: "benign" }} />);
-    const decision = screen.getByRole("heading", { level: 2 }).closest("div").parentElement;
-    expect(decision).toHaveTextContent(/does not rule out cancer/);
-    expect(decision).not.toHaveTextContent(/healthy|cancer-free|benign/i);
-  });
-
-  it("says why a rejected image was not checked and hides the scores", () => {
-    render(<ResultCard result={rejected} />);
+  it("says why a rejected image was not checked and hides the type, alert and scores", () => {
+    render(<ResultCard result={{ ...rejected, risk_flag: "malignant_suspected" }} />);
 
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "Not checked: the picture is not clear enough",
     );
     expect(screen.getByText("The picture is blurry.")).toBeInTheDocument();
     expect(screen.queryAllByRole("meter")).toHaveLength(0);
-    expect(screen.queryByText(/rough scores/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/High-risk alert/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Most likely lesion type")).not.toBeInTheDocument();
   });
 });

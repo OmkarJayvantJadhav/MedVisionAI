@@ -51,7 +51,7 @@ class TemplateSummaryProvider:
         if prediction.risk_flag is RiskFlag.MALIGNANT_SUSPECTED:
             sentence += (
                 f" The chance of cancer or pre-cancer is {prediction.malignant_probability:.0%}, "
-                "above the referral line, so consider referral to a dermatologist."
+                "above the alert line, so consider referral to a dermatologist."
             )
         elif prediction.risk_flag is RiskFlag.UNCERTAIN:
             sentence += (

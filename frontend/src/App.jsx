@@ -36,7 +36,7 @@ export default function App() {
   const request = useRef(null);
   const maxMb = meta?.max_upload_mb ?? DEFAULT_MAX_MB;
 
-  // The page works without metadata; it adds the model facts, the referral
+  // The page works without metadata; it adds the model facts, the alert
   // threshold and the readiness shown in the header. The backend answers
   // `/meta` only once the model is loaded, so retry while it starts.
   useEffect(() => {
@@ -143,11 +143,12 @@ export default function App() {
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-4 pt-10 pb-6 sm:pt-12">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Skin Lesion Referral Check
+            Dermoscopy Lesion Classifier
           </h1>
           <p className="mt-1.5 max-w-3xl text-base text-ink-soft">
-            Add a dermoscopy image of one skin lesion. You will see whether it may need referral to
-            a dermatologist, and which areas of the picture the system looked at.
+            Add a dermoscopy image of one skin lesion. You will see the most likely of eight lesion
+            types, how sure the model is, where it looked, and an alert if the chance of cancer is
+            high.
           </p>
           <div className="mt-5">
             <Disclaimer text={meta?.disclaimer} />
